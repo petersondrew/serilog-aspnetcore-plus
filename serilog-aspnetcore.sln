@@ -19,7 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{9C21B9
 		Setup.ps1 = Setup.ps1
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.AspNetCore", "src\Serilog.AspNetCore\Serilog.AspNetCore.csproj", "{0549D23F-986B-4FB2-BACE-16FD7A7BC9EF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.AspNetCore.Plus", "src\Serilog.AspNetCore\Serilog.AspNetCore.Plus.csproj", "{0549D23F-986B-4FB2-BACE-16FD7A7BC9EF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.AspNetCore.Tests", "test\Serilog.AspNetCore.Tests\Serilog.AspNetCore.Tests.csproj", "{AD51759B-CD58-473F-9620-0B0E56A123A1}"
 EndProject

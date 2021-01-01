@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Serilog.AspNetCore\Serilog.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\Serilog.AspNetCore\Serilog.AspNetCore.Plus.csproj" />
   </ItemGroup>
 
   <ItemGroup>
