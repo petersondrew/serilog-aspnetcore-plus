@@ -51,6 +51,6 @@ namespace EarlyInitializationSample
                 {
                     webBuilder.UseStartup<Startup>();
                 })
-                .UseSerilog();
+                .UseSerilogPlus();
     }
 }
