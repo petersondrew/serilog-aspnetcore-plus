@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Description>Serilog support for ASP.NET Core logging and some plus features</Description>
+		<Description>Serilog support for ASP.NET Core logging with some plus features</Description>
 		<VersionPrefix>3.4.1</VersionPrefix>
 		<Authors>Microsoft;Serilog Contributors;</Authors>
 		<TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
