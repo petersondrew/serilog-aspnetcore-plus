@@ -10,7 +10,7 @@ An improved version of Serilog.AspNetCore package based on my usage in applicati
 
 ### Instructions
 
-**First**, install the _Serilog.AspNetCore_ [NuGet package](https://www.nuget.org/packages/Serilog.AspNetCore) into your app.
+**First**, install the _Serilog.AspNetCore.Plus_ [NuGet package](https://www.nuget.org/packages/Serilog.AspNetCore.Plus) into your app.
 
 ```shell
 dotnet add package Serilog.AspNetCore.Plus
