@@ -4,6 +4,7 @@ An improved version of Serilog.AspNetCore package based on my usage in applicati
 - Default log setup based on practices for faster project boostrap
 - Captures request body
 - Capture responses if response is not successfull (status >= 400)
+- Log levels based on response status code (Warning for status >= 400, Error for status >= 500)
 - Capture additional data like Event Id, User Agent Data and other environment data
 - Read log configuration automatically from logsettings.json or logsettings.{Environment}.json if files exists for better log configuration management
 
