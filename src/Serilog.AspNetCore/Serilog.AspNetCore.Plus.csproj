@@ -1,21 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Description>Serilog support for ASP.NET Core logging</Description>
+		<Description>Serilog support for ASP.NET Core logging and some plus features</Description>
 		<VersionPrefix>3.4.1</VersionPrefix>
-		<Authors>Microsoft;Serilog Contributors</Authors>
+		<Authors>Microsoft;Serilog Contributors;</Authors>
 		<TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<AssemblyOriginatorKeyFile>../../assets/Serilog.snk</AssemblyOriginatorKeyFile>
 		<SignAssembly>true</SignAssembly>
 		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-		<PackageTags>serilog;aspnet;aspnetcore</PackageTags>
+		<PackageTags>serilog;aspnet;aspnetcore;av;plus</PackageTags>
 		<PackageIcon>serilog-extension-nuget.png</PackageIcon>
 		<PackageIconUrl>https://serilog.net/images/serilog-extension-nuget.png</PackageIconUrl>
-		<PackageProjectUrl>https://github.com/serilog/serilog-aspnetcore</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/alirezavafi/serilog-aspnetcore-plus</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/serilog/serilog-aspnetcore</RepositoryUrl>
+		<RepositoryUrl>https://github.com/alirezavafi/serilog-aspnetcore-plus</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
 		<RootNamespace>Serilog</RootNamespace>
