@@ -2,6 +2,7 @@
 using Serilog.Core;
 using Serilog.Events;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Serilog.Enrichers
 {
@@ -21,23 +22,19 @@ namespace Serilog.Enrichers
         {
             var httpContextAccessor = new HttpContextAccessor();
             var httpContext = httpContextAccessor.HttpContext;
-            var user = httpContext?.User;
-            if (httpContext.User == null ||
-                httpContext.User.Identity == null ||
+            if (httpContext?.User?.Identity == null ||
                 !httpContext.User.Identity.IsAuthenticated)
             {
                 return;
             }
 
-            foreach (var item in user.Claims)
+            var user = httpContext.User;
+            var claims = user.Claims.Where(x => !ignoredClaims.Contains(x.Type)).Select(x => new
             {
-                if (ignoredClaims.Contains(item.Type))
-                {
-                    continue;
-                }
-
-                logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("user_" + item.Type, item.Value));
-            }
+                x.Type,
+                x.Value
+            }).ToList();
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("UserIdentity", claims));
         }
     }
 }

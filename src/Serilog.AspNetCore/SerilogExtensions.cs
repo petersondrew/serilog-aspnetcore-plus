@@ -32,26 +32,33 @@ namespace Serilog
             {
                 var env = hostingContext.HostingEnvironment;
                 config.AddJsonFile("logsettings.json", optional: true, reloadOnChange: true)
-                      .AddJsonFile($"logsettings.{env.EnvironmentName}.json",
-                                     optional: true, reloadOnChange: true);
+                    .AddJsonFile($"logsettings.{env.EnvironmentName}.json",
+                        optional: true, reloadOnChange: true);
             });
             host.UseSerilog((context, config) =>
             {
-                var loggerConfiguration = config.AddDefaultEnrichers()
-                                                .ReadFrom.Configuration(context.Configuration)
-                                                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
-                                                .Destructure.With<JsonDocumentDestructuringPolicy>();
-                options?.Invoke(loggerConfiguration);
-                if (options == null)
+                var loggerConfiguration = config.Enrich.FromLogContext()
+                    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
+                    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+                    .Enrich.FromLogContext()
+                    .Enrich.WithEnvironmentUserName()
+                    .Enrich.WithMachineName()
+                    .Enrich.WithExceptionDetails()
+                    .Enrich.With<UserAgentEnricher>()
+                    .Enrich.With<UserClaimsEnricher>()
+                    .Enrich.With<EventTypeEnricher>()
+                    .Enrich.With<CorrelationIdEnricher>()
+                    .ReadFrom.Configuration(context.Configuration)
+                    .Destructure.With<JsonDocumentDestructuringPolicy>();
+                var logPath = context.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
+                if (!Directory.Exists(logPath))
                 {
-                    var logPath = context.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
-                    if (!Directory.Exists(logPath))
-                    {
-                        Directory.CreateDirectory(logPath);
-                    }
-                    var file = File.CreateText($"{logPath}/internal-{DateTime.Now.Ticks}.log");
-                    SelfLog.Enable(TextWriter.Synchronized(file));
+                    Directory.CreateDirectory(logPath);
                 }
+
+                options?.Invoke(loggerConfiguration);
+                var file = File.CreateText($"{logPath}/internal-{DateTime.Now.Ticks}.log");
+                SelfLog.Enable(TextWriter.Synchronized(file));
             });
             return host;
         }
@@ -62,29 +69,40 @@ namespace Serilog
         /// <param name="host"></param>
         /// <param name="options"></param>
         /// <returns></returns>
-        public static IWebHostBuilder UseSerilogPlus(this IWebHostBuilder host, Action<LoggerConfiguration> options = null)
+        public static IWebHostBuilder UseSerilogPlus(this IWebHostBuilder host,
+            Action<LoggerConfiguration> options = null)
         {
-
             host.ConfigureAppConfiguration((hostingContext, config) =>
             {
                 var env = hostingContext.HostingEnvironment;
                 config.AddJsonFile("logsettings.json", optional: true, reloadOnChange: true)
-                      .AddJsonFile($"logsettings.{env.EnvironmentName}.json",
-                                     optional: true, reloadOnChange: true);
+                    .AddJsonFile($"logsettings.{env.EnvironmentName}.json",
+                        optional: true, reloadOnChange: true);
             });
             host.UseSerilog((context, config) =>
             {
-
-                var loggerConfiguration = config.AddDefaultEnrichers()
-                                                .ReadFrom.Configuration(context.Configuration)
-                                                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
-                                                .Destructure.With<JsonDocumentDestructuringPolicy>();
-                options?.Invoke(loggerConfiguration);
-                if (options == null)
+                var loggerConfiguration = config.Enrich.FromLogContext()
+                    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
+                    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+                    .Enrich.FromLogContext()
+                    .Enrich.WithEnvironmentUserName()
+                    .Enrich.WithMachineName()
+                    .Enrich.WithExceptionDetails()
+                    .Enrich.With<UserAgentEnricher>()
+                    .Enrich.With<UserClaimsEnricher>()
+                    .Enrich.With<EventTypeEnricher>()
+                    .Enrich.With<CorrelationIdEnricher>()
+                    .ReadFrom.Configuration(context.Configuration)
+                    .Destructure.With<JsonDocumentDestructuringPolicy>();
+                var logPath = context.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
+                if (!Directory.Exists(logPath))
                 {
-                    var file = File.CreateText($"App_Data/Logs/internal-{DateTime.Now.Ticks}.log");
-                    SelfLog.Enable(TextWriter.Synchronized(file));
+                    Directory.CreateDirectory(logPath);
                 }
+
+                options?.Invoke(loggerConfiguration);
+                var file = File.CreateText($"{logPath}/internal-{DateTime.Now.Ticks}.log");
+                SelfLog.Enable(TextWriter.Synchronized(file));
             });
             return host;
         }
@@ -93,7 +111,7 @@ namespace Serilog
         /// Configure host to use preconfigured and practiced Serilog
         /// </summary>
         /// <param name="app"></param>
-        public static void UseSerilog(this IApplicationBuilder app)
+        public static void UseSerilogPlus(this IApplicationBuilder app)
         {
             //app.UseHealthAndMetricsMiddleware();
             app.UseSerilogRequestLogging(options =>
@@ -115,14 +133,17 @@ namespace Serilog
 
                 options.EnrichDiagnosticContext = (diagnosticContext, ctx) =>
                 {
-                    diagnosticContext.Set("HttpRequestQuery", ctx.Request.Query.ToDictionary(x => x.Key, y => y.Value.ToString()));
-                    diagnosticContext.Set("HttpRequestHeaders", ctx.Request.Headers.ToDictionary(x => x.Key, y => y.Value.ToString()));
+                    diagnosticContext.Set("HttpRequestQuery",
+                        ctx.Request.Query.ToDictionary(x => x.Key, y => y.Value.ToString()));
+                    diagnosticContext.Set("HttpRequestHeaders",
+                        ctx.Request.Headers.ToDictionary(x => x.Key, y => y.Value.ToString()));
 
                     if (ctx.Items.ContainsKey("HttpRequestBody"))
                     {
                         var data = ctx.Items["HttpRequestBody"];
                         diagnosticContext.Set("HttpRequestBody", data, false);
                     }
+
                     if (ctx.Items.ContainsKey("HttpRequestBodyObject"))
                     {
                         var data = ctx.Items["HttpRequestBodyObject"];
@@ -130,19 +151,6 @@ namespace Serilog
                     }
                 };
             });
-        }
-
-        private static LoggerConfiguration AddDefaultEnrichers(this LoggerConfiguration loggerConfiguration)
-        {
-            loggerConfiguration.Enrich.FromLogContext()
-                .Enrich.With<UserAgentEnricher>()
-                .Enrich.With<UserClaimsEnricher>()
-                .Enrich.With<EventTypeEnricher>()
-                .Enrich.With<CorrelationIdEnricher>()
-                .Enrich.WithEnvironmentUserName()
-                .Enrich.WithMachineName()
-                .Enrich.WithExceptionDetails();
-            return loggerConfiguration;
         }
     }
 }
