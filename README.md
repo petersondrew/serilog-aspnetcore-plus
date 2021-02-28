@@ -72,10 +72,11 @@ In your application's _Startup.cs_, add the middleware with `UseSerilogPlus()`:
                 app.UseExceptionHandler("/Home/Error");
             }
 
-            app.UseSerilogPlus(); // <-- Add this line
+            app.UseSerilogPlusRequestLogging(); // <-- Add this line
 
             // Other app configuration
+        }
 ```
 
-It's important that the `UseSerilogRequestLogging()` call appears _before_ handlers such as MVC. The middleware will not time or log components that appear before it in the pipeline. (This can be utilized to exclude noisy handlers from logging, such as `UseStaticFiles()`, by placing `UseSerilogPlus()` after them.)
+It's important that the `UseSerilogPlusRequestLogging()` call appears _before_ handlers such as MVC. The middleware will not time or log components that appear before it in the pipeline. (This can be utilized to exclude noisy handlers from logging, such as `UseStaticFiles()`, by placing `UseSerilogPlusRequestLogging()` after them.)
 
