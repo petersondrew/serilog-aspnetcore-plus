@@ -129,8 +129,6 @@ namespace Serilog.AspNetCore
                 new LogEventProperty("RequestContentType", new ScalarValue(httpContext.Request.ContentType)),
                 new LogEventProperty("RequestProtocol", new ScalarValue(httpContext.Request.Protocol)),
                 new LogEventProperty("RequestQueryString", new ScalarValue(httpContext.Request.QueryString.ToString())),
-                new LogEventProperty("RequestQuery", new ScalarValue(statusCode)),
-                new LogEventProperty("RequestHeaders", new ScalarValue(statusCode)),
                 new LogEventProperty("ClientIpAddress", new ScalarValue(httpContext.Connection.RemoteIpAddress.ToString())),
                 new LogEventProperty("ResponseStatusCode", new ScalarValue(statusCode)),
                 new LogEventProperty("ResponseElapsedMiliSeconds", new ScalarValue(elapsedMs)),

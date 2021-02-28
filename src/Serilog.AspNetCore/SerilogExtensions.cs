@@ -111,7 +111,7 @@ namespace Serilog
         /// Configure host to use preconfigured and practiced Serilog
         /// </summary>
         /// <param name="app"></param>
-        public static void UseSerilogPlus(this IApplicationBuilder app)
+        public static void UseSerilogPlusRequestLogging(this IApplicationBuilder app)
         {
             //app.UseHealthAndMetricsMiddleware();
             app.UseSerilogRequestLogging(options =>
