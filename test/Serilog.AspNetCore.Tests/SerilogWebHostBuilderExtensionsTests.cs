@@ -79,7 +79,7 @@ namespace Serilog.AspNetCore.Tests
                     }))
                     .Configure(app =>
                     {
-                        app.UseSerilogRequestLogging(configureOptions);
+                        app.UseSerilogPlusRequestLogging(configureOptions);
                         app.Run(_ => Task.CompletedTask); // 200 OK
                     })
                     .UseSerilog(logger, dispose));

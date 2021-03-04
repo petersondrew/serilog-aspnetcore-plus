@@ -42,10 +42,10 @@ namespace Serilog
         /// added by ASP.NET Core, and names of properties added to the <see cref="IDiagnosticContext"/>.
         /// </param>
         /// <returns>The application builder.</returns>
-        public static IApplicationBuilder UseSerilogRequestLogging(
+        public static IApplicationBuilder UseSerilogPlusRequestLogging(
             this IApplicationBuilder app,
             string messageTemplate)
-            => app.UseSerilogRequestLogging(opts => opts.MessageTemplate = messageTemplate);
+            => app.UseSerilogPlusRequestLogging(opts => opts.MessageTemplate = messageTemplate);
 
         /// <summary>
         /// Adds middleware for streamlined request logging. Instead of writing HTTP request information
@@ -57,7 +57,7 @@ namespace Serilog
         /// <param name="app">The application builder.</param>
         /// <param name="configureOptions">A <see cref="System.Action{T}" /> to configure the provided <see cref="RequestLoggingOptions" />.</param>
         /// <returns>The application builder.</returns>
-        public static IApplicationBuilder UseSerilogRequestLogging(
+        public static IApplicationBuilder UseSerilogPlusRequestLogging(
             this IApplicationBuilder app,
             Action<RequestLoggingOptions> configureOptions = null)
         {
@@ -69,8 +69,6 @@ namespace Serilog
 
             if (opts.MessageTemplate == null)
                 throw new ArgumentException($"{nameof(opts.MessageTemplate)} cannot be null.");
-            if (opts.GetLevel == null)
-                throw new ArgumentException($"{nameof(opts.GetLevel)} cannot be null.");
 
             return app.UseMiddleware<RequestLoggingMiddleware>(opts);
         }

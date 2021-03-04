@@ -10,7 +10,7 @@ namespace Serilog.Enrichers
     /// <summary>
     /// Event Id enricher using murmur hash
     /// </summary>
-    public class EventTypeEnricher : ILogEventEnricher
+    public class EventIdEnricher : ILogEventEnricher
     {
         /// <summary>
         /// Enriches event type id using murmur hash
