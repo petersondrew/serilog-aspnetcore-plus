@@ -46,7 +46,7 @@ namespace Serilog
                     .Enrich.WithExceptionDetails()
                     .Enrich.With<UserAgentEnricher>()
                     .Enrich.With<UserClaimsEnricher>()
-                    .Enrich.With<EventTypeEnricher>()
+                    .Enrich.With<EventIdEnricher>()
                     .Enrich.With<CorrelationIdEnricher>()
                     .ReadFrom.Configuration(context.Configuration)
                     .Destructure.With<JsonDocumentDestructuringPolicy>();
@@ -81,19 +81,8 @@ namespace Serilog
             });
             host.UseSerilog((context, config) =>
             {
-                var loggerConfiguration = config.Enrich.FromLogContext()
-                    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
-                    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
-                    .Enrich.FromLogContext()
-                    .Enrich.WithEnvironmentUserName()
-                    .Enrich.WithMachineName()
-                    .Enrich.WithExceptionDetails()
-                    .Enrich.With<UserAgentEnricher>()
-                    .Enrich.With<UserClaimsEnricher>()
-                    .Enrich.With<EventTypeEnricher>()
-                    .Enrich.With<CorrelationIdEnricher>()
-                    .ReadFrom.Configuration(context.Configuration)
-                    .Destructure.With<JsonDocumentDestructuringPolicy>();
+                var loggerConfiguration = config.SetSerilogPlusDefaultConfiguration()
+                    .ReadFrom.Configuration(context.Configuration);
                 var logPath = context.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
                 if (!Directory.Exists(logPath))
                 {
@@ -105,52 +94,6 @@ namespace Serilog
                 SelfLog.Enable(TextWriter.Synchronized(file));
             });
             return host;
-        }
-
-        /// <summary>
-        /// Configure host to use preconfigured and practiced Serilog
-        /// </summary>
-        /// <param name="app"></param>
-        public static void UseSerilogPlusRequestLogging(this IApplicationBuilder app)
-        {
-            //app.UseHealthAndMetricsMiddleware();
-            app.UseSerilogRequestLogging(options =>
-            {
-                options.GetLevel = (httpContext, elapsed, ex) =>
-                {
-                    if (httpContext.Response.StatusCode >= 500)
-                    {
-                        return LogEventLevel.Error;
-                    }
-
-                    if (httpContext.Response.StatusCode >= 400)
-                    {
-                        return LogEventLevel.Warning;
-                    }
-
-                    return LogEventLevel.Information;
-                };
-
-                options.EnrichDiagnosticContext = (diagnosticContext, ctx) =>
-                {
-                    diagnosticContext.Set("HttpRequestQuery",
-                        ctx.Request.Query.ToDictionary(x => x.Key, y => y.Value.ToString()));
-                    diagnosticContext.Set("HttpRequestHeaders",
-                        ctx.Request.Headers.ToDictionary(x => x.Key, y => y.Value.ToString()));
-
-                    if (ctx.Items.ContainsKey("HttpRequestBody"))
-                    {
-                        var data = ctx.Items["HttpRequestBody"];
-                        diagnosticContext.Set("HttpRequestBody", data, false);
-                    }
-
-                    if (ctx.Items.ContainsKey("HttpRequestBodyObject"))
-                    {
-                        var data = ctx.Items["HttpRequestBodyObject"];
-                        diagnosticContext.Set("HttpRequestBodyObject", data, true);
-                    }
-                };
-            });
         }
     }
 }
