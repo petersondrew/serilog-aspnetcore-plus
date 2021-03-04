@@ -22,7 +22,7 @@ namespace Serilog
         /// <param name="mask">Mask format</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static string MaskFields(this string json, string[] blacklist, string mask)
+     public static string MaskFields(this string json, string[] blacklist, string mask)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -39,8 +39,18 @@ namespace Serilog
                 return json;
             }
 
-            var jsonObject = (JObject) JsonConvert.DeserializeObject(json);
-            MaskFieldsFromJToken(jsonObject, blacklist, mask);
+            var jsonObject = JsonConvert.DeserializeObject(json);
+            if (jsonObject is JArray jArray)
+            {
+                foreach (var jToken in jArray)
+                {
+                    MaskFieldsFromJToken(jToken, blacklist, mask);
+                }
+            }
+            else if (jsonObject is JObject jObject)
+            {
+                MaskFieldsFromJToken(jObject, blacklist, mask);
+            }
 
             return jsonObject.ToString();
         }

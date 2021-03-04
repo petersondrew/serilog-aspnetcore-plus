@@ -67,7 +67,7 @@ namespace Serilog.AspNetCore
         /// Properties to mask before logging to output to prevent sensitive data leakage
         /// </summary>
         public IList<string> MaskedProperties { get; } =
-            new List<string>() {"password", "token", "clientsecret", "otp"};
+            new List<string>() {"*password*", "*token*", "*clientsecret*", "*bearer*", "*authorization*", "*client-secret*","*otp"};
         /// <summary>
         /// Mask format to replace with masked data
         /// </summary>

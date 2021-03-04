@@ -171,19 +171,11 @@ namespace Serilog.AspNetCore
                      (!isRequestOk && _options.LogRequestBodyMode == LogMode.LogFailures)) &&
                     !string.IsNullOrWhiteSpace(requestBody))
                 {
+                    try { requestBody = requestBody.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
                     if (requestBody.Length > _options.RequestBodyTextLengthLogLimit)
-                    {
                         requestBody = requestBody.Substring(0, _options.RequestBodyTextLengthLogLimit);
-                    }
-
-                    try
-                    {
-                        requestBody = requestBody.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat);
-                        requestBodyObject = System.Text.Json.JsonDocument.Parse(requestBody);
-                    }
-                    catch (Exception)
-                    {
-                    }
+                    else
+                        try { requestBodyObject = System.Text.Json.JsonDocument.Parse(requestBody); } catch (Exception) { }
                 }
                 else
                 {
@@ -208,20 +200,11 @@ namespace Serilog.AspNetCore
                 if ((_options.LogResponseBodyMode == LogMode.LogAll ||
                      (!isRequestOk && _options.LogResponseBodyMode == LogMode.LogFailures)))
                 {
+                    try { responseBody = responseBody.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
                     if (responseBody.Length > _options.ResponseBodyTextLengthLogLimit)
-                    {
                         responseBody = responseBody.Substring(0, _options.ResponseBodyTextLengthLogLimit);
-                    }
-
-                    try
-                    {
-                        responseBody =
-                            responseBody.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat);
-                        responseBodyObject = System.Text.Json.JsonDocument.Parse(responseBody);
-                    }
-                    catch (Exception)
-                    {
-                    }
+                    else
+                        try { responseBodyObject = System.Text.Json.JsonDocument.Parse(responseBody); } catch (Exception) { }
                 }
                 else
                 {
