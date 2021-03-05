@@ -56,13 +56,21 @@ namespace Serilog.AspNetCore
         public LogMode LogMode { get; set; } = LogMode.LogAll;
 
         /// <summary>
+        /// Determines when logging request headers
+        /// </summary>
+        public LogMode RequestHeaderLogMode { get; set; } = LogMode.LogAll;
+        /// <summary>
         /// Determines when logging request body data
         /// </summary>
-        public LogMode LogRequestBodyMode { get; set; } = LogMode.LogAll;
+        public LogMode RequestBodyLogMode { get; set; } = LogMode.LogAll;
+        /// <summary>
+        /// Determines when logging response headers
+        /// </summary>
+        public LogMode ResponseHeaderLogMode { get; set; } = LogMode.LogAll;
         /// <summary>
         /// Determines when logging response body data
         /// </summary>
-        public LogMode LogResponseBodyMode { get; set; } = LogMode.LogFailures;
+        public LogMode ResponseBodyLogMode { get; set; } = LogMode.LogFailures;
         /// <summary>
         /// Properties to mask before logging to output to prevent sensitive data leakage
         /// </summary>
@@ -75,11 +83,11 @@ namespace Serilog.AspNetCore
         /// <summary>
         /// Maximum allowed length of response body text to capture in logs
         /// </summary>
-        public int ResponseBodyTextLengthLogLimit { get; set; } = 4000;
+        public int ResponseBodyLogTextLengthLimit { get; set; } = 4000;
         /// <summary>
         /// Maximum allowed length of request body text to capture in logs
         /// </summary>
-        public int RequestBodyTextLengthLogLimit { get; set; } = 4000;
+        public int RequestBodyLogTextLengthLimit { get; set; } = 4000;
 
         /// <summary>
         /// Constructor

@@ -21,7 +21,7 @@ namespace EarlyInitializationSample
         {
             Log.Logger = new LoggerConfiguration()
                 .SetSerilogPlusDefaultConfiguration()
-                .WriteTo.File(new RenderedCompactJsonFormatter(),"App_Data/Logs/log.json")
+                .WriteTo.File(new CompactJsonFormatter(),"App_Data/Logs/log.json")
                 .CreateLogger();
 
             try

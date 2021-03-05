@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.AspNetCore;
+using Serilog.Formatting.Compact;
 
 namespace LogConfigurationFileSample
 {
@@ -42,17 +43,25 @@ namespace LogConfigurationFileSample
                 app.UseHsts();
             }
 
+            var dedicatedOptionalLogger = new LoggerConfiguration()
+                .SetSerilogPlusDefaultConfiguration()
+                .WriteTo.File(new CompactJsonFormatter(),"App_Data/Logs/log_requests.json")
+                .CreateLogger();
+
             app.UseSerilogPlusRequestLogging(p =>
             {
                 p.LogMode = LogMode.LogAll;
-                p.LogRequestBodyMode = LogMode.LogAll;
-                p.LogResponseBodyMode = LogMode.LogFailures;
-                p.RequestBodyTextLengthLogLimit = 5000;
-                p.ResponseBodyTextLengthLogLimit = 5000;
+                p.RequestHeaderLogMode = LogMode.LogAll;
+                p.RequestBodyLogMode = LogMode.LogAll;
+                p.RequestBodyLogTextLengthLimit = 5000;
+                p.ResponseHeaderLogMode = LogMode.LogFailures;
+                p.ResponseBodyLogMode = LogMode.LogFailures;
+                p.ResponseBodyLogTextLengthLimit = 5000;
                 p.MaskFormat = "*****"; 
                 p.MaskedProperties.Clear();
                 p.MaskedProperties.Add("*password*");
                 p.MaskedProperties.Add("*token*");
+                p.Logger = dedicatedOptionalLogger; //if sets to null, request logger will use default global Serilog.Log.Logger
             });
 
             app.UseHttpsRedirection();

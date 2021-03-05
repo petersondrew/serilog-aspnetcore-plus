@@ -19,7 +19,7 @@
 		<RepositoryType>git</RepositoryType>
 		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
 		<RootNamespace>Serilog</RootNamespace>
-		<PackageVersion>3.4.2-alpha</PackageVersion>
+		<PackageVersion>3.4.3</PackageVersion>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 

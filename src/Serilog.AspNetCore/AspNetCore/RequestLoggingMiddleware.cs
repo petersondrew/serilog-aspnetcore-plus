@@ -19,12 +19,14 @@ using Serilog.Events;
 using Serilog.Extensions.Hosting;
 using Serilog.Parsing;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Primitives;
 
 namespace Serilog.AspNetCore
 {
@@ -120,7 +122,7 @@ namespace Serilog.AspNetCore
         private bool LogHttpRequest(HttpContext context, DiagnosticContextCollector collector, double elapsedMs,
             Exception ex)
         {
-            var logger = _logger ?? Log.ForContext<RequestLoggingMiddleware>();
+            var logger = _logger ?? Serilog.Log.Logger;
             var level = LogEventLevel.Information;
             if (context.Response.StatusCode >= 500)
             {
@@ -143,8 +145,8 @@ namespace Serilog.AspNetCore
             if (!collector.TryComplete(out var collectedProperties))
                 collectedProperties = NoProperties;
 
-            var requestBody = context.Items["RequestBody"]?.ToString();
-            var responseBody = string.Empty;
+            var requestBodyText = context.Items["RequestBody"]?.ToString();
+            var responseBodyText = string.Empty;
             if (context.Response.Body != null && context.Response.ContentLength > 0)
             {
                 try
@@ -152,7 +154,7 @@ namespace Serilog.AspNetCore
                     using (StreamReader reader =
                         new StreamReader(context.Response.Body, Encoding.UTF8, true, -1, true))
                     {
-                        responseBody = reader.ReadToEnd();
+                        responseBodyText = reader.ReadToEnd();
                     }
 
                     context.Response.Body.Position = 0;
@@ -166,20 +168,32 @@ namespace Serilog.AspNetCore
             if (_options.LogMode == LogMode.LogAll ||
                 (!isRequestOk && _options.LogMode == LogMode.LogFailures))
             {
-                JsonDocument requestBodyObject = null;
-                if ((_options.LogRequestBodyMode == LogMode.LogAll ||
-                     (!isRequestOk && _options.LogRequestBodyMode == LogMode.LogFailures)) &&
-                    !string.IsNullOrWhiteSpace(requestBody))
+                JsonDocument requestBody = null;
+                if ((_options.RequestBodyLogMode == LogMode.LogAll ||
+                     (!isRequestOk && _options.RequestBodyLogMode == LogMode.LogFailures)) &&
+                    !string.IsNullOrWhiteSpace(requestBodyText))
                 {
-                    try { requestBody = requestBody.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
-                    if (requestBody.Length > _options.RequestBodyTextLengthLogLimit)
-                        requestBody = requestBody.Substring(0, _options.RequestBodyTextLengthLogLimit);
+                    try { requestBodyText = requestBodyText.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
+                    if (requestBodyText.Length > _options.RequestBodyLogTextLengthLimit)
+                        requestBodyText = requestBodyText.Substring(0, _options.RequestBodyLogTextLengthLimit);
                     else
-                        try { requestBodyObject = System.Text.Json.JsonDocument.Parse(requestBody); } catch (Exception) { }
+                        try { requestBody = System.Text.Json.JsonDocument.Parse(requestBodyText); } catch (Exception) { }
                 }
                 else
                 {
-                    requestBody = null;
+                    requestBodyText = null;
+                }
+
+                IEnumerable<object> requestHeader = null;
+                if (_options.RequestHeaderLogMode == LogMode.LogAll ||
+                    (!isRequestOk && _options.RequestHeaderLogMode == LogMode.LogFailures))
+                {
+                    requestHeader =
+                        context.Request.Headers.Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).Select(x => new
+                        {
+                            Name = x.Key,
+                            Value = x.Value.ToString()
+                        });
                 }
 
                 var requestData = new
@@ -190,25 +204,41 @@ namespace Serilog.AspNetCore
                     Host = context.Request.Host.Value,
                     Path = context.Request.Path.Value,
                     QueryString = context.Request.QueryString.Value,
-                    context.Request.Query,
-                    BodyString = requestBody,
-                    Body = requestBodyObject
+                    Query = context.Request.Query.Select(x => new
+                                {
+                                    Name = x.Key,
+                                    Value = x.Value.ToString()
+                                }),
+                    BodyString = requestBodyText,
+                    Body = requestBody,
+                    Header = requestHeader,
                 };
 
-
-                object responseBodyObject = null;
-                if ((_options.LogResponseBodyMode == LogMode.LogAll ||
-                     (!isRequestOk && _options.LogResponseBodyMode == LogMode.LogFailures)))
+                object responseBody = null;
+                if ((_options.ResponseBodyLogMode == LogMode.LogAll ||
+                     (!isRequestOk && _options.ResponseBodyLogMode == LogMode.LogFailures)))
                 {
-                    try { responseBody = responseBody.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
-                    if (responseBody.Length > _options.ResponseBodyTextLengthLogLimit)
-                        responseBody = responseBody.Substring(0, _options.ResponseBodyTextLengthLogLimit);
+                    try { responseBodyText = responseBodyText.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
+                    if (responseBodyText.Length > _options.ResponseBodyLogTextLengthLimit)
+                        responseBodyText = responseBodyText.Substring(0, _options.ResponseBodyLogTextLengthLimit);
                     else
-                        try { responseBodyObject = System.Text.Json.JsonDocument.Parse(responseBody); } catch (Exception) { }
+                        try { responseBody = System.Text.Json.JsonDocument.Parse(responseBodyText); } catch (Exception) { }
                 }
                 else
                 {
-                    responseBody = null;
+                    responseBodyText = null;
+                }
+
+                IEnumerable<object> responseHeader = null;
+                if (_options.ResponseHeaderLogMode == LogMode.LogAll ||
+                    (!isRequestOk && _options.ResponseHeaderLogMode == LogMode.LogFailures))
+                {
+                    responseHeader =
+                        context.Response.Headers.Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).Select(x => new
+                        {
+                            Name = x.Key,
+                            Value = x.Value.ToString()
+                        });
                 }
 
                 var responseData = new
@@ -216,8 +246,9 @@ namespace Serilog.AspNetCore
                     context.Response.StatusCode,
                     IsSucceed = isRequestOk,
                     ElapsedMilliseconds = elapsedMs,
-                    BodyString = responseBody,
-                    Body = responseBodyObject,
+                    BodyString = responseBodyText,
+                    Body = responseBody,
+                    Header = responseHeader,
                 };
                 
                 _logger.Write(level, ex, _options.MessageTemplate, new

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -12,7 +13,7 @@ namespace Serilog
     /// <summary>
     /// Masking extension for json strings
     /// </summary>
-    public static class JsonMasking
+    public static class MaskHelper
     {
         /// <summary>
         /// Masks specified json string using provided options
@@ -68,14 +69,7 @@ namespace Serilog
             {
                 if (jtoken is JProperty prop)
                 {
-                    var matching = blacklist.Any(item =>
-                    {
-                        return
-                            Regex.IsMatch(prop.Path, WildCardToRegular(item),
-                                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-                    });
-
-                    if (matching)
+                    if (IsMaskMatch(prop.Path, blacklist))
                     {
                         removeList.Add(jtoken);
                     }
@@ -93,9 +87,36 @@ namespace Serilog
             }
         }
 
+        /// <summary>
+        /// Check whether specified path must be masked
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="blacklist"></param>
+        /// <returns></returns>
+        public static bool IsMaskMatch(string path, string[] blacklist)
+        {
+            return blacklist.Any(item => Regex.IsMatch(path, WildCardToRegular(item), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
+        }
+
         private static string WildCardToRegular(string value)
         {
             return "^" + Regex.Escape(value).Replace("\\*", ".*") + "$";
+        }
+
+        /// <summary>
+        /// Masks key-value paired items
+        /// </summary>
+        /// <param name="keyValuePairs"></param>
+        /// <param name="blacklist"></param>
+        /// <param name="mask"></param>
+        /// <returns></returns>
+        public static IEnumerable<KeyValuePair<string, StringValues>> Mask(this IEnumerable<KeyValuePair<string, StringValues>> keyValuePairs, string[] blacklist,
+            string mask)
+        {
+            return keyValuePairs.Select(pair => IsMaskMatch(pair.Key, blacklist)
+                    ? new KeyValuePair<string, StringValues>(pair.Key, new StringValues(mask))
+                    : new KeyValuePair<string, StringValues>(pair.Key, pair.Value))
+                .ToList();
         }
     }
 }

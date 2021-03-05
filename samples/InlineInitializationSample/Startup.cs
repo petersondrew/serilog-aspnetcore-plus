@@ -41,11 +41,12 @@ namespace InlineInitializationSample
             // level in appsettings.json to "Information".
             app.UseSerilogPlusRequestLogging(p =>
             {
-                p.LogMode = LogMode.LogAll;
-                p.LogRequestBodyMode = LogMode.LogFailures;
-                p.LogResponseBodyMode = LogMode.LogNone;
-                p.RequestBodyTextLengthLogLimit = 5000;
-                p.ResponseBodyTextLengthLogLimit = 5000;
+                p.RequestHeaderLogMode = LogMode.LogFailures;
+                p.RequestBodyLogMode = LogMode.LogFailures;
+                p.RequestBodyLogTextLengthLimit = 5000;
+                p.ResponseHeaderLogMode = LogMode.LogNone;
+                p.ResponseBodyLogMode = LogMode.LogFailures;
+                p.ResponseBodyLogTextLengthLimit = 5000;
                 p.MaskFormat = "*****"; 
                 p.MaskedProperties.Clear();
                 p.MaskedProperties.Add("*password*");

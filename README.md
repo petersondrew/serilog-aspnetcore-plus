@@ -2,11 +2,14 @@
 An improved version of Serilog.AspNetCore package based on my usage in applications with following features:
 
 - Default log setup based on practices for faster project boostrap
-- Captures request body
-- Capture responses if response is not successfull (status >= 400)
+- Data masking for sensitive information
+- Captures request/response body controlled by response status and configuration
+- Captures request/response header controlled by response status and configuration
+- Request/response body size truncation for preventing performance penalties
 - Log levels based on response status code (Warning for status >= 400, Error for status >= 500)
 - Capture additional data like Event Id, User Agent Data and other environment data
 - Read log configuration automatically from logsettings.json or logsettings.{Environment}.json if files exists for better log configuration management
+
 
 ### Instructions
 
@@ -72,7 +75,7 @@ public class Program
 ```csharp
     Log.Logger = new LoggerConfiguration()
                     .SetSerilogPlusDefaultConfiguration() // <-- Add awesome staff like EventId, UserAgent and other useful enrichers
-                    .WriteTo.File(new RenderedCompactJsonFormatter(),"log.json")
+                    .WriteTo.File(new CompactJsonFormatter(),"log.json")
                     .CreateLogger();
 ```
 
@@ -98,10 +101,12 @@ In your application's _Startup.cs_, add the middleware with `UseSerilogPlus()`:
             // app.UseSerilogPlusRequestLogging(p =>
             // {
             //     p.LogMode = LogMode.LogAll;
-            //     p.LogRequestBodyMode = LogMode.LogFailures;
-            //     p.LogResponseBodyMode = LogMode.LogNone;
-            //     p.RequestBodyTextLengthLogLimit = 5000;
-            //     p.ResponseBodyTextLengthLogLimit = 5000;
+            //     p.RequestHeaderLogMode = LogMode.LogFailures;
+            //     p.RequestBodyLogMode = LogMode.LogFailures;
+            //     p.RequestBodyLogTextLengthLimit = 5000;
+            //     p.ResponseHeaderLogMode = LogMode.LogNone;
+            //     p.ResponseBodyLogMode = LogMode.LogNone;
+            //     p.ResponseBodyLogTextLengthLimit = 5000;
             //     p.MaskFormat = "*****"; 
             //     p.MaskedProperties.Clear();
             //     p.MaskedProperties.Add("*password*");
