@@ -39,7 +39,18 @@ namespace InlineInitializationSample
             // Write streamlined request completion events, instead of the more verbose ones from the framework.
             // To use the default framework request logging instead, remove this line and set the "Microsoft"
             // level in appsettings.json to "Information".
-            app.UseSerilogPlusRequestLogging();
+            app.UseSerilogPlusRequestLogging(p =>
+            {
+                p.LogMode = LogMode.LogAll;
+                p.LogRequestBodyMode = LogMode.LogFailures;
+                p.LogResponseBodyMode = LogMode.LogNone;
+                p.RequestBodyTextLengthLogLimit = 5000;
+                p.ResponseBodyTextLengthLogLimit = 5000;
+                p.MaskFormat = "*****"; 
+                p.MaskedProperties.Clear();
+                p.MaskedProperties.Add("*password*");
+                p.MaskedProperties.Add("*token*");
+            });
 
             app.UseRouting();
 
