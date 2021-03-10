@@ -70,7 +70,7 @@ namespace Serilog
         /// <param name="options"></param>
         /// <returns></returns>
         public static IWebHostBuilder UseSerilogPlus(this IWebHostBuilder host,
-            Action<LoggerConfiguration> options = null)
+            Action<WebHostBuilderContext, LoggerConfiguration> options = null)
         {
             host.ConfigureAppConfiguration((hostingContext, config) =>
             {
@@ -89,10 +89,23 @@ namespace Serilog
                     Directory.CreateDirectory(logPath);
                 }
 
-                options?.Invoke(loggerConfiguration);
+                options?.Invoke(context, loggerConfiguration);
                 var file = File.CreateText($"{logPath}/internal-{DateTime.Now.Ticks}.log");
                 SelfLog.Enable(TextWriter.Synchronized(file));
             });
+            return host;
+        }
+
+        /// <summary>
+        /// Configure host to use preconfigured and practiced Serilog
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public static IWebHostBuilder UseSerilogPlus(this IWebHostBuilder host,
+            Action<LoggerConfiguration> options = null)
+        {
+            host.UseSerilogPlus((ctx, opt) => options?.Invoke(opt));
             return host;
         }
     }
