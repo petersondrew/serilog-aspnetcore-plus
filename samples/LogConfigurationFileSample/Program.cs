@@ -19,10 +19,10 @@ namespace LogConfigurationFileSample
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .UseSerilogPlus()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder
-                        .UseSerilogPlus()
                         .UseStartup<Startup>();
                 });
     }
