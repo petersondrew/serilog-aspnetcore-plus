@@ -142,9 +142,6 @@ namespace Serilog.AspNetCore
             // Enrich diagnostic context
             _enrichDiagnosticContext?.Invoke(_diagnosticContext, context);
 
-            if (!collector.TryComplete(out var collectedProperties))
-                collectedProperties = NoProperties;
-
             var requestBodyText = context.Items["RequestBody"]?.ToString();
             var responseBodyText = string.Empty;
             if (context.Response.Body != null && context.Response.ContentLength > 0)
@@ -307,10 +304,14 @@ namespace Serilog.AspNetCore
                     Header = responseHeader,
                 };
                 
+                if (!collector.TryComplete(out var collectedProperties))
+                    collectedProperties = NoProperties;
+                    
                 _logger.Write(level, ex, _options.MessageTemplate, new
                 {
                     Request = requestData,
                     Response = responseData,
+                    Context = collectedProperties.ToDictionary(x => x.Name, x => x.Value.ToString()),
                 });
             }
 
