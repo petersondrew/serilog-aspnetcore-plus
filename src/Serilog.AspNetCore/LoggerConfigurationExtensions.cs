@@ -23,7 +23,6 @@ namespace Serilog
                 .Enrich.WithEnvironmentUserName()
                 .Enrich.WithMachineName()
                 .Enrich.WithExceptionDetails()
-                .Enrich.With<UserAgentEnricher>()
                 .Enrich.With<UserClaimsEnricher>()
                 .Enrich.With<EventIdEnricher>()
                 .Enrich.With<CorrelationIdEnricher>()
