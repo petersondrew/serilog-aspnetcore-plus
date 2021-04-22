@@ -29,12 +29,17 @@ namespace Serilog.Enrichers
             }
 
             var user = httpContext.User;
-            var claims = user.Claims.Where(x => !ignoredClaims.Contains(x.Type)).Select(x => new
+            var userClaimsByType = user.Claims.Where(x => !ignoredClaims.Contains(x.Type)).GroupBy(x => x.Type);
+            var claimsDic = new Dictionary<string, object>();
+            foreach (var claim in userClaimsByType)
             {
-                x.Type,
-                x.Value
-            }).ToList();
-            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("UserIdentity", claims));
+                if (claim.Count() > 1)
+                    claimsDic.Add(claim.Key, claim.Select(x => x.Value).ToArray());
+                else
+                    claimsDic.Add(claim.Key, claim.First().Value);
+            }
+            
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("User", claimsDic));
         }
     }
 }
