@@ -31,10 +31,7 @@ using Microsoft.Extensions.Primitives;
 namespace Serilog.AspNetCore
 {
     // ReSharper disable once ClassNeverInstantiated.Global
-    /// <summary>
-    /// Middleware that logs request/response to serilog
-    /// </summary>
-    public class RequestLoggingMiddleware
+    class RequestLoggingMiddleware
     {
         readonly RequestDelegate _next;
         readonly DiagnosticContext _diagnosticContext;
@@ -44,14 +41,7 @@ namespace Serilog.AspNetCore
         readonly ILogger _logger;
         static readonly LogEventProperty[] NoProperties = new LogEventProperty[0];
 
-        /// <summary>
-        /// Middleware Constructor
-        /// </summary>
-        /// <param name="next"></param>
-        /// <param name="diagnosticContext"></param>
-        /// <param name="options"></param>
-        /// <exception cref="ArgumentNullException"></exception>
-        public RequestLoggingMiddleware(RequestDelegate next, DiagnosticContext diagnosticContext,
+        RequestLoggingMiddleware(RequestDelegate next, DiagnosticContext diagnosticContext,
             RequestLoggingOptions options)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -65,12 +55,6 @@ namespace Serilog.AspNetCore
         }
 
         // ReSharper disable once UnusedMember.Global
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="httpContext"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
         public async Task Invoke(HttpContext httpContext)
         {
             if (httpContext == null) throw new ArgumentNullException(nameof(httpContext));
