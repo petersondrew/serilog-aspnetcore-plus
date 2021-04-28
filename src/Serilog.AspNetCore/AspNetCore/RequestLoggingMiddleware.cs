@@ -319,7 +319,7 @@ namespace Serilog.AspNetCore
                 {
                     Request = requestData,
                     Response = responseData,
-                    Context = collectedProperties.ToDictionary(x => x.Name, x => x.Value.ToString()),
+                    Diagnostics = collectedProperties.ToDictionary(x => x.Name, x => x.Value.ToString()),
                 });
             }
 
