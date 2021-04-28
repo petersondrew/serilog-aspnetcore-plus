@@ -41,7 +41,7 @@ namespace Serilog.AspNetCore
         readonly ILogger _logger;
         static readonly LogEventProperty[] NoProperties = new LogEventProperty[0];
 
-        RequestLoggingMiddleware(RequestDelegate next, DiagnosticContext diagnosticContext,
+        public RequestLoggingMiddleware(RequestDelegate next, DiagnosticContext diagnosticContext,
             RequestLoggingOptions options)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -62,6 +62,9 @@ namespace Serilog.AspNetCore
             var start = Stopwatch.GetTimestamp();
 
             var collector = _diagnosticContext.BeginCollection();
+            var memoryStream = new MemoryStream(); 
+            var originalResponseBodyStream = httpContext.Response.Body;
+            httpContext.Response.Body = memoryStream;
             try
             {
                 await CaptureRequestBody(httpContext);
@@ -78,7 +81,9 @@ namespace Serilog.AspNetCore
             }
             finally
             {
+                await RevertResponseBodyStreamAsync(memoryStream, originalResponseBodyStream);
                 collector.Dispose();
+                memoryStream.Dispose();
             }
         }
 
@@ -148,11 +153,8 @@ namespace Serilog.AspNetCore
             {
                 try
                 {
-                    var ms = new MemoryStream();
-                    context.Response.Body.CopyTo(ms);
-                    ms.Seek(0, SeekOrigin.Begin);
                     using (StreamReader reader =
-                        new StreamReader(ms, Encoding.UTF8, true, -1, true))
+                        new StreamReader(context.Response.Body, Encoding.UTF8, true, -1, true))
                     {
                         responseBodyText = reader.ReadToEnd();
                     }
@@ -182,7 +184,7 @@ namespace Serilog.AspNetCore
                 }
                 else
                 {
-                    requestBodyText = null;
+                    requestBodyText = "(Not Logged)";
                 }
 
                 var requestHeader = new Dictionary<string, object>();
@@ -273,7 +275,7 @@ namespace Serilog.AspNetCore
                 }
                 else
                 {
-                    responseBodyText = null;
+                    responseBodyText = "(Not Logged)";
                 }
 
                 var responseHeader = new Dictionary<string, object>();
@@ -321,5 +323,12 @@ namespace Serilog.AspNetCore
 
             return false;
         }
+        
+        async Task RevertResponseBodyStreamAsync(Stream bodyStream, Stream orginalBodyStream)
+        {
+            bodyStream.Seek(0, SeekOrigin.Begin);
+            await bodyStream.CopyToAsync(orginalBodyStream);
+        }
+
     }
 }
