@@ -153,6 +153,8 @@ namespace Serilog.AspNetCore
             {
                 try
                 {
+                    context.Response.Body.Position = 0;
+
                     using (StreamReader reader =
                         new StreamReader(context.Response.Body, Encoding.UTF8, true, -1, true))
                     {
