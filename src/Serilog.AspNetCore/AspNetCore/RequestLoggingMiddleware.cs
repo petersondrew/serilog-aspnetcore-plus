@@ -148,16 +148,20 @@ namespace Serilog.AspNetCore
             {
                 try
                 {
+                    var ms = new MemoryStream();
+                    context.Response.Body.CopyTo(ms);
+                    ms.Seek(0, SeekOrigin.Begin);
                     using (StreamReader reader =
-                        new StreamReader(context.Response.Body, Encoding.UTF8, true, -1, true))
+                        new StreamReader(ms, Encoding.UTF8, true, -1, true))
                     {
                         responseBodyText = reader.ReadToEnd();
                     }
 
                     context.Response.Body.Position = 0;
                 }
-                catch (Exception)
+                catch (Exception responseParseException)
                 {
+                    SelfLog.WriteLine("Failed to extract response: " + responseParseException);
                 }
             }
 
@@ -196,9 +200,9 @@ namespace Serilog.AspNetCore
                                 requestHeader.Add(item.Key, item.First().Value.ToString());
                         }
                     }
-                    catch (Exception)
+                    catch (Exception headerParseException)
                     {
-                        SelfLog.WriteLine("Cannot parse response header");
+                        SelfLog.WriteLine("Cannot parse request header: " + headerParseException);
                     }    
                 }
 
@@ -288,9 +292,9 @@ namespace Serilog.AspNetCore
                                 responseHeader.Add(item.Key, item.First().Value.ToString());
                         }
                     }
-                    catch (Exception)
+                    catch (Exception headerParseException)
                     {
-                        SelfLog.WriteLine("Cannot parse response header");
+                        SelfLog.WriteLine("Cannot parse response header: " + headerParseException);
                     }    
                 }
 
