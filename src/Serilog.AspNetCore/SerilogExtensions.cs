@@ -37,7 +37,7 @@ namespace Serilog
             });
             host.UseSerilog((context, config) =>
             {
-                var loggerConfiguration = config.Enrich.FromLogContext()
+                var loggerConfiguration = config
                     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
                     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
                     .Enrich.FromLogContext()

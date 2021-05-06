@@ -12,8 +12,11 @@ namespace Serilog.Enrichers
     /// </summary>
     public class CorrelationIdEnricher : ILogEventEnricher
     {
-        private const string CorrelationIdPropertyName = "CorrelationId";
-        private static readonly string CorrelationIdItemName = $"{typeof(CorrelationIdEnricher).Name}+CorrelationId";
+        /// <summary>
+        /// CorrelationId HttpContext Item Property Name
+        /// </summary>
+        public const string CorrelationIdPropertyName = "RequestCorrelationId";
+        private static readonly string CorrelationIdItemName = $"CorrelationId";
         private readonly IHttpContextAccessor _contextAccessor;
 
         /// <summary>
