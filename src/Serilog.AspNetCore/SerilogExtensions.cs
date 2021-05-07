@@ -37,18 +37,7 @@ namespace Serilog
             });
             host.UseSerilog((context, config) =>
             {
-                var loggerConfiguration = config
-                    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
-                    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
-                    .Enrich.FromLogContext()
-                    .Enrich.WithEnvironmentUserName()
-                    .Enrich.WithMachineName()
-                    .Enrich.WithExceptionDetails()
-                    .Enrich.With<UserClaimsEnricher>()
-                    .Enrich.With<EventIdEnricher>()
-                    .Enrich.With<CorrelationIdEnricher>()
-                    .ReadFrom.Configuration(context.Configuration)
-                    .Destructure.With<JsonDocumentDestructuringPolicy>();
+                var loggerConfiguration = config.SetSerilogPlusDefaultConfiguration();
                 var logPath = context.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
                 if (!Directory.Exists(logPath))
                 {
@@ -78,17 +67,17 @@ namespace Serilog
                     .AddJsonFile($"logsettings.{env.EnvironmentName}.json",
                         optional: true, reloadOnChange: true);
             });
-            host.UseSerilog((context, config) =>
+            host.UseSerilog((builder, config) =>
             {
                 var loggerConfiguration = config.SetSerilogPlusDefaultConfiguration()
-                    .ReadFrom.Configuration(context.Configuration);
-                var logPath = context.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
+                    .ReadFrom.Configuration(builder.Configuration);
+                var logPath = builder.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
                 if (!Directory.Exists(logPath))
                 {
                     Directory.CreateDirectory(logPath);
                 }
 
-                options?.Invoke(context, loggerConfiguration);
+                options?.Invoke(builder, loggerConfiguration);
                 var file = File.CreateText($"{logPath}/internal-{DateTime.Now.Ticks}.log");
                 SelfLog.Enable(TextWriter.Synchronized(file));
             });

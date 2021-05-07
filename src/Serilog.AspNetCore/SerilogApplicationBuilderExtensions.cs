@@ -13,7 +13,6 @@
 // limitations under the License.
 
 using System;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -69,7 +68,7 @@ namespace Serilog
 
             if (opts.MessageTemplate == null)
                 throw new ArgumentException($"{nameof(opts.MessageTemplate)} cannot be null.");
-
+            
             return app.UseMiddleware<RequestLoggingMiddleware>(opts);
         }
     }

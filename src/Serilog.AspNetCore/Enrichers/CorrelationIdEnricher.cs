@@ -12,23 +12,21 @@ namespace Serilog.Enrichers
     /// </summary>
     public class CorrelationIdEnricher : ILogEventEnricher
     {
-        /// <summary>
-        /// CorrelationId HttpContext Item Property Name
-        /// </summary>
-        public const string CorrelationIdPropertyName = "RequestCorrelationId";
-        private static readonly string CorrelationIdItemName = $"CorrelationId";
-        private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        private const string CorrelationIdPropertyName = "RequestCorrelationId";
+        private const string CorrelationIdItemName = "CorrelationId";
 
         /// <summary>
-        /// Creates new enricher
+        /// 
         /// </summary>
         public CorrelationIdEnricher() : this(new HttpContextAccessor())
         {
         }
 
-        internal CorrelationIdEnricher(IHttpContextAccessor contextAccessor)
+        internal CorrelationIdEnricher(IHttpContextAccessor httpContextAccessor)
         {
-            _contextAccessor = contextAccessor;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         /// <summary>
@@ -38,20 +36,25 @@ namespace Serilog.Enrichers
         /// <param name="propertyFactory"></param>
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
-            if (_contextAccessor.HttpContext == null)
-                return;
-
             var correlationId = GetCorrelationId();
-
+            if (string.IsNullOrWhiteSpace(correlationId))
+            {
+                return;
+            }
+            
             var correlationIdProperty = new LogEventProperty(CorrelationIdPropertyName, new ScalarValue(correlationId));
-
             logEvent.AddOrUpdateProperty(correlationIdProperty);
         }
 
         private string GetCorrelationId()
         {
-            return (string)(_contextAccessor.HttpContext.Items[CorrelationIdItemName] ??
-                             (_contextAccessor.HttpContext.Items[CorrelationIdItemName] = Guid.NewGuid().ToString()));
+            var correlationId = _httpContextAccessor.HttpContext?.Request.Headers["X-Correlation-Id"].ToString();
+            if (string.IsNullOrWhiteSpace(correlationId))
+            {
+                correlationId = _httpContextAccessor.HttpContext?.Items[CorrelationIdItemName]?.ToString();
+            }
+            
+            return correlationId;
         }
     }
 }
