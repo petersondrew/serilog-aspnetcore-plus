@@ -36,7 +36,6 @@ namespace Serilog.AspNetCore
         readonly RequestDelegate _next;
         readonly DiagnosticContext _diagnosticContext;
         private readonly RequestLoggingOptions _options;
-        readonly MessageTemplate _messageTemplate;
         readonly Action<IDiagnosticContext, HttpContext> _enrichDiagnosticContext;
         readonly ILogger _logger;
         static readonly LogEventProperty[] NoProperties = new LogEventProperty[0];
@@ -49,8 +48,7 @@ namespace Serilog.AspNetCore
             _options = options;
 
             _enrichDiagnosticContext = options.EnrichDiagnosticContext;
-            _messageTemplate = new MessageTemplateParser().Parse(options.MessageTemplate);
-            _logger = options.Logger?.ForContext<RequestLoggingMiddleware>() ?? Serilog.Log.Logger;
+            _logger = options.Logger?.ForContext<RequestLoggingMiddleware>() ?? Serilog.Log.Logger.ForContext<RequestLoggingMiddleware>();
         }
 
         // ReSharper disable once UnusedMember.Global
@@ -60,7 +58,7 @@ namespace Serilog.AspNetCore
 
             var start = Stopwatch.GetTimestamp();
 
-            createOrFetchCorrelationIdHeader(httpContext);
+            GetOrGenerateCorrelationId(httpContext);
             
             var collector = _diagnosticContext.BeginCollection();
             var memoryStream = new MemoryStream(); 
@@ -88,7 +86,7 @@ namespace Serilog.AspNetCore
             }
         }
 
-        private void createOrFetchCorrelationIdHeader(HttpContext context)
+        private void GetOrGenerateCorrelationId(HttpContext context)
         {
             var header = context.Request.Headers["X-Correlation-ID"];  
             var correlationId = header.Count > 0 ? header[0] : Guid.NewGuid().ToString();

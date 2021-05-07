@@ -31,7 +31,7 @@ namespace Serilog.AspNetCore
 
         /// <summary>
         /// Gets or sets the message template. The default value is
-        /// <c>"HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms"</c>. The
+        /// <c>"HTTP Request Completed {@Context}"</c>. The
         /// template can contain any of the placeholders from the default template, names of properties
         /// added by ASP.NET Core, and names of properties added to the <see cref="IDiagnosticContext"/>.
         /// </summary>
