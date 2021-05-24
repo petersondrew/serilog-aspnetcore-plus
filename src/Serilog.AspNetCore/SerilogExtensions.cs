@@ -26,7 +26,19 @@ namespace Serilog
         /// <param name="host"></param>
         /// <param name="options"></param>
         /// <returns></returns>
-        public static IHostBuilder UseSerilogPlus(this IHostBuilder host, Action<LoggerConfiguration> options = null)
+        public static IHostBuilder UseSerilogPlus(this IHostBuilder host,
+            Action<LoggerConfiguration> options)
+        {
+            return host.UseSerilogPlus((ctx, cfg) => options?.Invoke(cfg));
+        }
+
+        /// <summary>
+        /// Configure host to use preconfigured and practiced Serilog
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public static IHostBuilder UseSerilogPlus(this IHostBuilder host, Action<HostBuilderContext, LoggerConfiguration> options = null)
         {
             host.ConfigureAppConfiguration((hostingContext, config) =>
             {
@@ -44,7 +56,7 @@ namespace Serilog
                     Directory.CreateDirectory(logPath);
                 }
 
-                options?.Invoke(loggerConfiguration);
+                options?.Invoke(context, loggerConfiguration);
                 var file = File.CreateText($"{logPath}/internal-{DateTime.Now.Ticks}.log");
                 SelfLog.Enable(TextWriter.Synchronized(file));
             });

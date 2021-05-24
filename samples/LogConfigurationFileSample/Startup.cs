@@ -61,7 +61,7 @@ namespace LogConfigurationFileSample
                 p.MaskedProperties.Clear();
                 p.MaskedProperties.Add("*password*");
                 p.MaskedProperties.Add("*token*");
-                p.Logger = dedicatedOptionalLogger; //if sets to null, request logger will use default global Serilog.Log.Logger
+                p.Logger = null; //if sets to null, request logger will use default global Serilog.Log.Logger
             });
 
             app.UseHttpsRedirection();

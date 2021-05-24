@@ -48,7 +48,7 @@ namespace Serilog.AspNetCore
             _options = options;
 
             _enrichDiagnosticContext = options.EnrichDiagnosticContext;
-            _logger = options.Logger?.ForContext<RequestLoggingMiddleware>() ?? Serilog.Log.Logger.ForContext<RequestLoggingMiddleware>();
+            _logger = options.Logger?.ForContext<RequestLoggingMiddleware>();
         }
 
         // ReSharper disable once UnusedMember.Global
@@ -133,7 +133,7 @@ namespace Serilog.AspNetCore
         private bool LogHttpRequest(HttpContext context, DiagnosticContextCollector collector, double elapsedMs,
             Exception ex)
         {
-            var logger = _logger ?? Serilog.Log.Logger;
+            var logger = _logger ?? Log.ForContext<RequestLoggingMiddleware>();
             var level = LogEventLevel.Information;
             if (context.Response.StatusCode >= 500)
             {
@@ -326,7 +326,7 @@ namespace Serilog.AspNetCore
                 if (!collector.TryComplete(out var collectedProperties))
                     collectedProperties = NoProperties;
                     
-                _logger.Write(level, ex, _options.MessageTemplate, new
+                logger.Write(level, ex, _options.MessageTemplate, new
                 {
                     Request = requestData,
                     Response = responseData,
