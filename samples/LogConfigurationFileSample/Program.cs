@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Serilog.Events;
 
 namespace LogConfigurationFileSample
 {
@@ -19,7 +20,11 @@ namespace LogConfigurationFileSample
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .UseSerilogPlus()
+                .UseSerilogPlus(log =>
+                {
+                    log.MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
+                       .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning);
+                })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder

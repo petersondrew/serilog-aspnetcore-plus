@@ -17,8 +17,6 @@ namespace Serilog
         public static LoggerConfiguration SetSerilogPlusDefaultConfiguration(this LoggerConfiguration config)
         {
             config.Enrich.FromLogContext()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
                 .Enrich.FromLogContext()
                 .Enrich.WithEnvironmentUserName()
                 .Enrich.WithMachineName()

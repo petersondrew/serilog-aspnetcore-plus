@@ -20,7 +20,7 @@
 		<RepositoryType>git</RepositoryType>
 		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
 		<RootNamespace>Serilog</RootNamespace>
-		<PackageVersion>4.1.11</PackageVersion>
+		<PackageVersion>4.1.12</PackageVersion>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
