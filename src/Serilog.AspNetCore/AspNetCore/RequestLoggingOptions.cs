@@ -29,6 +29,25 @@ namespace Serilog.AspNetCore
         const string DefaultRequestCompletionMessageTemplate =
             "HTTP Request Completed {@Context}";
 
+        static LogEventLevel DefaultGetLevel(HttpContext ctx, double _, Exception ex)
+        {
+            var level = LogEventLevel.Information;
+            if (ctx.Response.StatusCode >= 500)
+            {
+                level = LogEventLevel.Error;
+            }
+            else if (ctx.Response.StatusCode >= 400)
+            {
+                level = LogEventLevel.Warning;
+            }
+            else if (ex != null)
+            {
+                level = LogEventLevel.Error;
+            }
+
+            return level;
+        }
+
         /// <summary>
         /// Gets or sets the message template. The default value is
         /// <c>"HTTP Request Completed {@Context}"</c>. The
@@ -39,17 +58,29 @@ namespace Serilog.AspNetCore
         /// The message template.
         /// </value>
         public string MessageTemplate { get; set; }
-        
+
         /// <summary>
         /// A callback that can be used to set additional properties on the request completion event.
         /// </summary>
         public Action<IDiagnosticContext, HttpContext> EnrichDiagnosticContext { get; set; }
 
         /// <summary>
+        /// A function returning the <see cref="LogEventLevel"/> based on the <see cref="HttpContext"/>, the number of
+        /// elapsed milliseconds required for handling the request, and an <see cref="Exception" /> if one was thrown.
+        /// The default behavior returns <see cref="LogEventLevel.Error"/> when the response status code is greater than 499 or if the
+        /// <see cref="Exception"/> is not null. Also default log level for 4xx range errors set to <see cref="LogEventLevel.Warning"/>   
+        /// </summary>
+        /// <value>
+        /// A function returning the <see cref="LogEventLevel"/>.
+        /// </value>
+        public Func<HttpContext, double, Exception, LogEventLevel> GetLevel { get; set; }
+
+        /// <summary>
         /// The logger through which request completion events will be logged. The default is to use the
         /// static <see cref="Log"/> class.
         /// </summary>
         public ILogger Logger { get; set; }
+
         /// <summary>
         /// Determines when logging requests information. Default is true.
         /// </summary>
@@ -59,31 +90,39 @@ namespace Serilog.AspNetCore
         /// Determines when logging request headers
         /// </summary>
         public LogMode RequestHeaderLogMode { get; set; } = LogMode.LogAll;
+
         /// <summary>
         /// Determines when logging request body data
         /// </summary>
         public LogMode RequestBodyLogMode { get; set; } = LogMode.LogAll;
+
         /// <summary>
         /// Determines when logging response headers
         /// </summary>
         public LogMode ResponseHeaderLogMode { get; set; } = LogMode.LogAll;
+
         /// <summary>
         /// Determines when logging response body data
         /// </summary>
         public LogMode ResponseBodyLogMode { get; set; } = LogMode.LogFailures;
+
         /// <summary>
         /// Properties to mask before logging to output to prevent sensitive data leakage
         /// </summary>
         public IList<string> MaskedProperties { get; } =
-            new List<string>() {"*password*", "*token*", "*clientsecret*", "*bearer*", "*authorization*", "*client-secret*","*otp"};
+            new List<string>()
+                {"*password*", "*token*", "*clientsecret*", "*bearer*", "*authorization*", "*client-secret*", "*otp"};
+
         /// <summary>
         /// Mask format to replace with masked data
         /// </summary>
         public string MaskFormat { get; set; } = "*** MASKED ***";
+
         /// <summary>
         /// Maximum allowed length of response body text to capture in logs
         /// </summary>
         public int ResponseBodyLogTextLengthLimit { get; set; } = 4000;
+
         /// <summary>
         /// Maximum allowed length of request body text to capture in logs
         /// </summary>
@@ -94,6 +133,7 @@ namespace Serilog.AspNetCore
         /// </summary>
         public RequestLoggingOptions()
         {
+            GetLevel = DefaultGetLevel;
             MessageTemplate = DefaultRequestCompletionMessageTemplate;
         }
     }

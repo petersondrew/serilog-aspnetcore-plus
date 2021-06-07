@@ -134,19 +134,7 @@ namespace Serilog.AspNetCore
             Exception ex)
         {
             var logger = _logger ?? Log.ForContext<RequestLoggingMiddleware>();
-            var level = LogEventLevel.Information;
-            if (context.Response.StatusCode >= 500)
-            {
-                level = LogEventLevel.Error;
-            }
-            else if (context.Response.StatusCode >= 400)
-            {
-                level = LogEventLevel.Warning;
-            }
-            else if (ex != null)
-            {
-                level = LogEventLevel.Error;
-            }
+            var level = _options.GetLevel(context, elapsedMs, ex);
 
             if (!logger.IsEnabled(level)) return false;
 
