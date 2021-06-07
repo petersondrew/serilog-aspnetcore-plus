@@ -49,7 +49,8 @@ namespace Serilog
             });
             host.UseSerilog((context, config) =>
             {
-                var loggerConfiguration = config.SetSerilogPlusDefaultConfiguration();
+                var loggerConfiguration = config.SetSerilogPlusDefaultConfiguration() 
+                    .ReadFrom.Configuration(context.Configuration);;
                 var logPath = context.Configuration["Serilog:DefaultLogLocation"]?.ToString() ?? "App_Data/Logs";
                 if (!Directory.Exists(logPath))
                 {
