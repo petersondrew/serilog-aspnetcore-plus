@@ -129,6 +129,12 @@ namespace Serilog.AspNetCore
         public int RequestBodyLogTextLengthLimit { get; set; } = 4000;
 
         /// <summary>
+        /// Include the full URL query string in the <c>RequestPath</c> property
+        /// that is attached to request log events. The default is <c>false</c>.
+        /// </summary>
+        public bool IncludeQueryInRequestPath { get; set; }
+
+        /// <summary>
         /// Constructor
         /// </summary>
         public RequestLoggingOptions()

@@ -38,6 +38,7 @@ namespace Serilog.AspNetCore
         private readonly RequestLoggingOptions _options;
         readonly Action<IDiagnosticContext, HttpContext> _enrichDiagnosticContext;
         readonly ILogger _logger;
+        readonly bool _includeQueryInRequestPath;
         static readonly LogEventProperty[] NoProperties = new LogEventProperty[0];
         public RequestLoggingMiddleware(RequestDelegate next, DiagnosticContext diagnosticContext,
             RequestLoggingOptions options)
@@ -49,6 +50,7 @@ namespace Serilog.AspNetCore
 
             _enrichDiagnosticContext = options.EnrichDiagnosticContext;
             _logger = options.Logger?.ForContext<RequestLoggingMiddleware>();
+            _includeQueryInRequestPath = options.IncludeQueryInRequestPath;
         }
 
         // ReSharper disable once UnusedMember.Global
@@ -86,6 +88,7 @@ namespace Serilog.AspNetCore
             }
         }
 
+        
         private void GetOrGenerateCorrelationId(HttpContext context)
         {
             var header = context.Request.Headers["X-Correlation-ID"];  
@@ -108,20 +111,22 @@ namespace Serilog.AspNetCore
                 httpContext.Request.Body.Position = 0;
             }
         }
-
+        
         static double GetElapsedMilliseconds(long start, long stop)
         {
-            return (stop - start) * 1000 / (double) Stopwatch.Frequency;
+            return (stop - start) * 1000 / (double)Stopwatch.Frequency;
         }
 
-        static string GetPath(HttpContext httpContext)
+        static string GetPath(HttpContext httpContext, bool includeQueryInRequestPath)
         {
             /*
                 In some cases, like when running integration tests with WebApplicationFactory<T>
-                the RawTarget returns an empty string instead of null, in that case we can't use
+                the Path returns an empty string instead of null, in that case we can't use
                 ?? as fallback.
             */
-            var requestPath = httpContext.Features.Get<IHttpRequestFeature>()?.RawTarget;
+            var requestPath = includeQueryInRequestPath
+                ? httpContext.Features.Get<IHttpRequestFeature>()?.RawTarget
+                : httpContext.Features.Get<IHttpRequestFeature>()?.Path;
             if (string.IsNullOrEmpty(requestPath))
             {
                 requestPath = httpContext.Request.Path.ToString();

@@ -1,4 +1,4 @@
-# Serilog.AspNetCore.Plus 
+# Serilog.AspNetCore.Plus
 An improved version of Serilog.AspNetCore package based on my usage in applications with following features:
 
 - Default log setup based on practices for faster project boostrap
@@ -9,7 +9,6 @@ An improved version of Serilog.AspNetCore package based on my usage in applicati
 - Log levels based on response status code (Warning for status >= 400, Error for status >= 500)
 - Capture additional data like Event Id, User Agent Data and other environment data
 - Read log configuration automatically from logsettings.json or logsettings.{Environment}.json if files exists for better log configuration management
-
 
 ### Instructions
 
@@ -23,11 +22,18 @@ dotnet add package Serilog.AspNetCore.Plus
 
 ```csharp
 using Serilog;
+using Serilog.Events;
 
 public class Program
 {
     public static int Main(string[] args)
     {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateLogger();
+
         try
         {
             Log.Information("Starting web host");
@@ -64,10 +70,6 @@ public class Program
                 //             theme: SystemConsoleTheme.Literate);
                 // })
                 
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
 }
 ```
 
@@ -78,6 +80,29 @@ public class Program
                     .WriteTo.File(new CompactJsonFormatter(),"log.json")
                     .CreateLogger();
 ```
+
+**Finally**, clean up by removing the remaining configuration for the default logger:
+
+ * Remove the `"Logging"` section from _appsettings.*.json_ files (this can be replaced with [Serilog configuration](https://github.com/serilog/serilog-settings-configuration) as shown in [the _Sample_ project](https://github.com/serilog/serilog-aspnetcore/blob/dev/samples/Sample/Program.cs), if required)
+ * Remove `UseApplicationInsights()` (this can be replaced with the [Serilog AI sink](https://github.com/serilog/serilog-sinks-applicationinsights), if required)
+
+That's it! With the level bumped up a little you will see log output resembling:
+
+```
+[22:14:44.646 DBG] RouteCollection.RouteAsync
+    Routes: 
+        Microsoft.AspNet.Mvc.Routing.AttributeRoute
+        {controller=Home}/{action=Index}/{id?}
+    Handled? True
+[22:14:44.647 DBG] RouterMiddleware.Invoke
+    Handled? True
+[22:14:45.706 DBG] /lib/jquery/jquery.js not modified
+[22:14:45.706 DBG] /css/site.css not modified
+[22:14:45.741 DBG] Handled. Status code: 304 File: /css/site.css
+```
+
+**Tip:** to see Serilog output in the Visual Studio output window when running under IIS, either select _ASP.NET Core Web Server_ from the _Show output from_ drop-down list, or replace `WriteTo.Console()` in the logger configuration with `WriteTo.Debug()`.
+
 
 ### Request logging
 
@@ -191,7 +216,6 @@ It's important that the `UseSerilogPlusRequestLogging()` call appears _before_ h
 }
 ```
 
-
 ### Two-stage initialization
 
 The example at the top of this page shows how to configure Serilog immediately when the application starts. This has the benefit of catching and reporting exceptions thrown during set-up of the ASP.NET Core host.
@@ -242,12 +266,57 @@ It's important to note that the final logger **completely replaces** the bootstr
 
 **Using two-stage initialization**, insert the `ReadFrom.Services(services)` call shown in the example above. The `ReadFrom.Services()` call will configure the logging pipeline with any registered implementations of the following services:
 
-* `IDestructuringPolicy`
-* `ILogEventEnricher`
-* `ILogEventFilter`
-* `ILogEventSink`
-* `LoggingLevelSwitch`
+ * `IDestructuringPolicy`
+ * `ILogEventEnricher`
+ * `ILogEventFilter`
+ * `ILogEventSink`
+ * `LoggingLevelSwitch`
 
+#### Enabling `Microsoft.Extensions.Logging.ILoggerProvider`s
+
+Serilog sends events to outputs called _sinks_, that implement Serilog's `ILogEventSink` interface, and are added to the logging pipeline using `WriteTo`. _Microsoft.Extensions.Logging_ has a similar concept called _providers_, and these implement `ILoggerProvider`. Providers are what the default logging configuration creates under the hood through methods like `AddConsole()`.
+
+By default, Serilog ignores providers, since there are usually equivalent Serilog sinks available, and these work more efficiently with Serilog's pipeline. If provider support is needed, it can be optionally enabled.
+
+To have Serilog pass events to providers, **using two-stage initialization** as above, pass `writeToProviders: true` in the call to `UseSerilog()`:
+
+```csharp
+    .UseSerilog(
+        (hostingContext, services, loggerConfiguration) => /* snip! */,
+        writeToProviders: true)
+```
+
+### JSON output
+
+The `Console()`, `Debug()`, and `File()` sinks all support JSON-formatted output natively, via the included _Serilog.Formatting.Compact_ package.
+
+To write newline-delimited JSON, pass a `CompactJsonFormatter` or `RenderedCompactJsonFormatter` to the sink configuration method:
+
+```csharp
+    .WriteTo.Console(new RenderedCompactJsonFormatter())
+```
+
+### Writing to the Azure Diagnostics Log Stream
+
+The Azure Diagnostic Log Stream ships events from any files in the `D:\home\LogFiles\` folder. To enable this for your app, add a file sink to your `LoggerConfiguration`, taking care to set the `shared` and `flushToDiskInterval` parameters:
+
+```csharp
+    public static int Main(string[] args)
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            // Add this line:
+            .WriteTo.File(
+                @"D:\home\LogFiles\Application\myapp.txt",
+                fileSizeLimitBytes: 1_000_000,
+                rollOnFileSizeLimit: true,
+                shared: true,
+                flushToDiskInterval: TimeSpan.FromSeconds(1))
+            .CreateLogger();
+```
 
 ### Pushing properties to the `ILogger<T>`
 
