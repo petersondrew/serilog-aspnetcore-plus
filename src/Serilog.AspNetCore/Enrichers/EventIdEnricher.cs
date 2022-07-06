@@ -12,6 +12,8 @@ namespace Serilog.Enrichers
     /// </summary>
     public class EventIdEnricher : ILogEventEnricher
     {
+        private const string EventIdPropertyName = "EventId";
+    
         /// <summary>
         /// Enriches event type id using murmur hash
         /// </summary>
@@ -21,15 +23,17 @@ namespace Serilog.Enrichers
         {
             if (logEvent is null)
                 throw new ArgumentNullException(nameof(logEvent));
-
             if (propertyFactory is null)
                 throw new ArgumentNullException(nameof(propertyFactory));
+
+            if (logEvent.Properties.ContainsKey(EventIdPropertyName))
+                return;
 
             Murmur32 murmur = MurmurHash.Create32();
             byte[] bytes = Encoding.UTF8.GetBytes(logEvent.MessageTemplate.Text);
             byte[] hash = murmur.ComputeHash(bytes);
             string hexadecimalHash = BitConverter.ToString(hash).Replace("-", "");
-            LogEventProperty eventId = propertyFactory.CreateProperty("EventId", hexadecimalHash);
+            LogEventProperty eventId = propertyFactory.CreateProperty(EventIdPropertyName, hexadecimalHash);
             logEvent.AddPropertyIfAbsent(eventId);
         }
     }

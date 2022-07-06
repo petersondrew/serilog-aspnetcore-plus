@@ -14,7 +14,7 @@ namespace Serilog.Enrichers
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        private const string CorrelationIdPropertyName = "RequestCorrelationId";
+        private const string CorrelationIdPropertyName = "X-Correlation-ID";
         private const string CorrelationIdItemName = "CorrelationId";
 
         /// <summary>
@@ -38,9 +38,7 @@ namespace Serilog.Enrichers
         {
             var correlationId = GetCorrelationId();
             if (string.IsNullOrWhiteSpace(correlationId))
-            {
                 return;
-            }
             
             var correlationIdProperty = new LogEventProperty(CorrelationIdPropertyName, new ScalarValue(correlationId));
             logEvent.AddOrUpdateProperty(correlationIdProperty);
@@ -50,10 +48,8 @@ namespace Serilog.Enrichers
         {
             var correlationId = _httpContextAccessor.HttpContext?.Request.Headers["X-Correlation-Id"].ToString();
             if (string.IsNullOrWhiteSpace(correlationId))
-            {
                 correlationId = _httpContextAccessor.HttpContext?.Items[CorrelationIdItemName]?.ToString();
-            }
-            
+           
             return correlationId;
         }
     }
