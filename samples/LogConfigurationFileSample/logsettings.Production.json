@@ -1,0 +1,39 @@
+﻿{
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File" ],
+    "MinimumLevel": "Information",
+    "WriteTo": [
+      {
+        "Name": "File",
+        "Args": {
+          "path": "App_Data/Logs/log.json",
+          "rollingInterval": "Day",
+          "fileSizeLimitBytes": "50000000",
+          "rollOnFileSizeLimit": true,
+          "retainedFileCountLimit" : 24,
+          "formatter": "Serilog.Formatting.Json.JsonFormatter"
+        }
+      }
+    ],
+    "Destructure": [
+      {
+        "Name": "ToMaximumDepth",
+        "Args": { "maximumDestructuringDepth": 4 }
+      },
+      {
+        "Name": "ToMaximumStringLength",
+        "Args": { "maximumStringLength": 10000 }
+      },
+      {
+        "Name": "ToMaximumCollectionCount",
+        "Args": { "maximumCollectionCount": 100 }
+      }
+    ],
+    "Properties": {
+      "ApplicationId": "MyApp",
+      "ApplicationVersion": "1.0.0",
+      "ApplicationEnvironment": "Production",
+      "MyCustomProperty": "Test"
+    }
+  }
+}
