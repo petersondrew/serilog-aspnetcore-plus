@@ -9,12 +9,12 @@
     </ItemGroup>
     
     <ItemGroup>
+      <PackageReference Include="NSwag.AspNetCore" Version="13.16.1" />
       <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
       <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
     </ItemGroup>
     
     <ItemGroup>
-      <Folder Include="App_Data\Logs" />
+      <Folder Remove="App_Data\Logs" />
     </ItemGroup>
-    
 </Project>

@@ -1,11 +1,26 @@
 ﻿{
   "Serilog": {
-    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File" ],
-    "MinimumLevel": "Verbose",
+    "Using": [
+      "Serilog.Sinks.Console",
+      "Serilog.Sinks.File"
+    ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "Microsoft.Hosting.Lifetime": "Information",
+        "Microsoft.AspNetCore.Hosting.Diagnostics": "Warning",
+        "Microsoft.AspNetCore.Mvc.Infrastructure": "Warning",
+        "Microsoft.AspNetCore.Routing": "Warning",
+        "Microsoft.EntityFrameworkCore": "Warning",
+        "Microsoft.EntityFrameworkCore.Database.Command": "Information",
+        "System": "Warning"
+      }
+    },
     "WriteTo": [
       {
         "Name": "Console",
-	    "Args": {
+        "Args": {
           "theme": "Serilog.Sinks.SystemConsole.Themes.SystemConsoleTheme::Literate, Serilog.Sinks.Console",
           "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3}] {Message}{NewLine}{Properties}{NewLine}{Exception}{NewLine}"
         }
@@ -15,7 +30,7 @@
         "Args": {
           "path": "App_Data/Logs/log.json",
           "rollingInterval": "Day",
-          "retainedFileCountLimit" : null,
+          "retainedFileCountLimit": null,
           "formatter": "Serilog.Formatting.Json.JsonFormatter"
         }
       }
@@ -23,15 +38,21 @@
     "Destructure": [
       {
         "Name": "ToMaximumDepth",
-        "Args": { "maximumDestructuringDepth": 4 }
+        "Args": {
+          "maximumDestructuringDepth": 4
+        }
       },
       {
         "Name": "ToMaximumStringLength",
-        "Args": { "maximumStringLength": 10000 }
+        "Args": {
+          "maximumStringLength": 10000
+        }
       },
       {
         "Name": "ToMaximumCollectionCount",
-        "Args": { "maximumCollectionCount": 100 }
+        "Args": {
+          "maximumCollectionCount": 100
+        }
       }
     ],
     "Properties": {

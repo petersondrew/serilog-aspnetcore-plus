@@ -1,20 +1,36 @@
-﻿// https://github.com/ThiagoBarradas/jsonmasking/blob/master/JsonMasking/JsonMasking.cs
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Primitives;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Serilog
+namespace Serilog.Extensions
 {
-    /// <summary>
-    /// Masking extension for json strings
-    /// </summary>
-    public static class MaskHelper
+    internal static class JsonExtension
     {
+        public static bool TryGetJToken(this string text, out JToken jToken)
+        {
+            jToken = null;
+            text = text.Trim();
+            if ((text.StartsWith("{") && text.EndsWith("}")) || //For object
+                (text.StartsWith("[") && text.EndsWith("]"))) //For array
+            {
+                try
+                {
+                    jToken = JToken.Parse(text);
+                    return true;
+                }
+                catch(Exception) {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+        
         /// <summary>
         /// Masks specified json string using provided options
         /// </summary>
@@ -23,37 +39,27 @@ namespace Serilog
         /// <param name="mask">Mask format</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-     public static string MaskFields(this string json, string[] blacklist, string mask)
+        public static JToken MaskFields(this JToken json, string[] blacklist, string mask)
         {
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                return json;
-            }
-
             if (blacklist == null)
-            {
                 throw new ArgumentNullException(nameof(blacklist));
-            }
 
             if (blacklist.Any() == false)
-            {
                 return json;
-            }
 
-            var jsonObject = JsonConvert.DeserializeObject(json);
-            if (jsonObject is JArray jArray)
+            if (json is JArray jArray)
             {
                 foreach (var jToken in jArray)
                 {
                     MaskFieldsFromJToken(jToken, blacklist, mask);
                 }
             }
-            else if (jsonObject is JObject jObject)
+            else if (json is JObject jObject)
             {
                 MaskFieldsFromJToken(jObject, blacklist, mask);
             }
 
-            return jsonObject.ToString();
+            return json;
         }
 
         private static void MaskFieldsFromJToken(JToken token, string[] blacklist, string mask)
@@ -82,7 +88,7 @@ namespace Serilog
             // replace 
             foreach (JToken el in removeList)
             {
-                var prop = (JProperty) el;
+                var prop = (JProperty)el;
                 prop.Value = mask;
             }
         }
@@ -95,7 +101,8 @@ namespace Serilog
         /// <returns></returns>
         public static bool IsMaskMatch(string path, string[] blacklist)
         {
-            return blacklist.Any(item => Regex.IsMatch(path, WildCardToRegular(item), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
+            return blacklist.Any(item => Regex.IsMatch(path, WildCardToRegular(item),
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
         }
 
         private static string WildCardToRegular(string value)
@@ -110,7 +117,8 @@ namespace Serilog
         /// <param name="blacklist"></param>
         /// <param name="mask"></param>
         /// <returns></returns>
-        public static IEnumerable<KeyValuePair<string, StringValues>> Mask(this IEnumerable<KeyValuePair<string, StringValues>> keyValuePairs, string[] blacklist,
+        public static IEnumerable<KeyValuePair<string, StringValues>> Mask(
+            this IEnumerable<KeyValuePair<string, StringValues>> keyValuePairs, string[] blacklist,
             string mask)
         {
             return keyValuePairs.Select(pair => IsMaskMatch(pair.Key, blacklist)

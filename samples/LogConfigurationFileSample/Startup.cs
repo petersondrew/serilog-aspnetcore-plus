@@ -26,7 +26,8 @@ namespace LogConfigurationFileSample
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddRazorPages();
+            services.AddControllers();
+            services.AddOpenApiDocument();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -43,6 +44,9 @@ namespace LogConfigurationFileSample
                 app.UseHsts();
             }
 
+            app.UseOpenApi();
+            app.UseSwaggerUi3();
+
             var dedicatedOptionalLogger = new LoggerConfiguration()
                 .SetSerilogPlusDefaultConfiguration()
                 .WriteTo.File(new CompactJsonFormatter(),"App_Data/Logs/log_requests.json")
@@ -55,13 +59,13 @@ namespace LogConfigurationFileSample
                 p.RequestBodyLogMode = LogMode.LogAll;
                 p.RequestBodyLogTextLengthLimit = 5000;
                 p.ResponseHeaderLogMode = LogMode.LogFailures;
-                p.ResponseBodyLogMode = LogMode.LogFailures;
+                p.ResponseBodyLogMode = LogMode.LogAll;
                 p.ResponseBodyLogTextLengthLimit = 5000;
                 p.MaskFormat = "*****"; 
                 p.MaskedProperties.Clear();
                 p.MaskedProperties.Add("*password*");
                 p.MaskedProperties.Add("*token*");
-                p.Logger = null; //if sets to null, request logger will use default global Serilog.Log.Logger
+                p.Logger = dedicatedOptionalLogger; //if sets to null, request logger will use default global Serilog.Log.Logger
             });
 
             app.UseHttpsRedirection();
@@ -73,6 +77,7 @@ namespace LogConfigurationFileSample
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllers();
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");

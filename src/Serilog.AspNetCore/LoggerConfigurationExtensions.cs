@@ -16,7 +16,7 @@ namespace Serilog
         /// <returns></returns>
         public static LoggerConfiguration SetSerilogPlusDefaultConfiguration(this LoggerConfiguration config)
         {
-            config.Enrich.FromLogContext()
+            config
                 .Enrich.FromLogContext()
                 .Enrich.WithEnvironmentUserName()
                 .Enrich.WithMachineName()
@@ -24,7 +24,8 @@ namespace Serilog
                 .Enrich.With<UserClaimsEnricher>()
                 .Enrich.With<EventIdEnricher>()
                 .Enrich.With<CorrelationIdEnricher>()
-                .Destructure.With<JsonDocumentDestructuringPolicy>();
+                .Destructure.With<JsonDocumentDestructuringPolicy>()
+                .Destructure.With<JsonNetDestructuringPolicy>();
             return config;
         }
     }

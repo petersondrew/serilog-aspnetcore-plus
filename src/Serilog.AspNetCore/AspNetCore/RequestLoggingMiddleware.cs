@@ -27,6 +27,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
+using Newtonsoft.Json.Linq;
+using Serilog.Extensions;
 
 namespace Serilog.AspNetCore
 {
@@ -40,6 +42,7 @@ namespace Serilog.AspNetCore
         readonly ILogger _logger;
         readonly bool _includeQueryInRequestPath;
         static readonly LogEventProperty[] NoProperties = new LogEventProperty[0];
+
         public RequestLoggingMiddleware(RequestDelegate next, DiagnosticContext diagnosticContext,
             RequestLoggingOptions options)
         {
@@ -60,15 +63,16 @@ namespace Serilog.AspNetCore
 
             var start = Stopwatch.GetTimestamp();
 
-            GetOrGenerateCorrelationId(httpContext);
-            
+            FetchOrGenerateCorrelationId(httpContext);
+
             var collector = _diagnosticContext.BeginCollection();
-            var memoryStream = new MemoryStream(); 
+
+            httpContext.Request.EnableBuffering();
+            var memoryStream = new MemoryStream();
             var originalResponseBodyStream = httpContext.Response.Body;
             httpContext.Response.Body = memoryStream;
             try
             {
-                await CaptureRequestBody(httpContext);
                 await _next(httpContext);
                 var elapsedMs = GetElapsedMilliseconds(start, Stopwatch.GetTimestamp());
                 LogHttpRequest(httpContext, collector, elapsedMs, null);
@@ -77,7 +81,7 @@ namespace Serilog.AspNetCore
                 // Never caught, because `LogCompletion()` returns false. This ensures e.g. the developer exception page is still
                 // shown, although it does also mean we see a duplicate "unhandled exception" event from ASP.NET Core.
                 when (LogHttpRequest(httpContext, collector,
-                    GetElapsedMilliseconds(start, Stopwatch.GetTimestamp()), ex))
+                          GetElapsedMilliseconds(start, Stopwatch.GetTimestamp()), ex))
             {
             }
             finally
@@ -88,30 +92,14 @@ namespace Serilog.AspNetCore
             }
         }
 
-        
-        private void GetOrGenerateCorrelationId(HttpContext context)
+
+        private void FetchOrGenerateCorrelationId(HttpContext context)
         {
-            var header = context.Request.Headers["X-Correlation-ID"];  
+            var header = context.Request.Headers["X-Correlation-ID"];
             var correlationId = header.Count > 0 ? header[0] : Guid.NewGuid().ToString();
             context.Items["CorrelationId"] = correlationId;
         }
 
-        private async Task CaptureRequestBody(HttpContext httpContext)
-        {
-            if (httpContext.Request.ContentLength.HasValue && httpContext.Request.ContentLength > 0)
-            {
-                httpContext.Request.EnableBuffering();
-
-                using (StreamReader reader = new StreamReader(httpContext.Request.Body, Encoding.UTF8, true, -1, true))
-                {
-                    var jsonString = await reader.ReadToEndAsync();
-                    httpContext.Items["RequestBody"] = jsonString;
-                }
-
-                httpContext.Request.Body.Position = 0;
-            }
-        }
-        
         static double GetElapsedMilliseconds(long start, long stop)
         {
             return (stop - start) * 1000 / (double)Stopwatch.Frequency;
@@ -146,43 +134,31 @@ namespace Serilog.AspNetCore
             // Enrich diagnostic context
             _enrichDiagnosticContext?.Invoke(_diagnosticContext, context);
 
-            var requestBodyText = context.Items["RequestBody"]?.ToString();
-            var responseBodyText = string.Empty;
-            if (context.Response.Body != null && context.Response.ContentLength > 0)
-            {
-                try
-                {
-                    context.Response.Body.Position = 0;
-
-                    using (StreamReader reader =
-                        new StreamReader(context.Response.Body, Encoding.UTF8, true, -1, true))
-                    {
-                        responseBodyText = reader.ReadToEnd();
-                    }
-
-                    context.Response.Body.Position = 0;
-                }
-                catch (Exception responseParseException)
-                {
-                    SelfLog.WriteLine("Failed to extract response: " + responseParseException);
-                }
-            }
+            string requestBodyText;
+            string responseBodyText;
 
             var isRequestOk = !(context.Response.StatusCode >= 400 || ex != null);
             if (_options.LogMode == LogMode.LogAll ||
                 (!isRequestOk && _options.LogMode == LogMode.LogFailures))
             {
-                JsonDocument requestBody = null;
+                object requestBody = null;
                 if ((_options.RequestBodyLogMode == LogMode.LogAll ||
                      (!isRequestOk && _options.RequestBodyLogMode == LogMode.LogFailures)))
                 {
+                    requestBodyText = TryReadRequestBodyText(context);
                     if (!string.IsNullOrWhiteSpace(requestBodyText))
                     {
-                        try { requestBodyText = requestBodyText.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
+                        JToken token;
+                        if (requestBodyText.TryGetJToken(out token))
+                        {
+                            var jToken = token.MaskFields(_options.MaskedProperties.ToArray(),
+                                _options.MaskFormat);
+                            requestBodyText = jToken.ToString();
+                            requestBody = jToken;
+                        }
+
                         if (requestBodyText.Length > _options.RequestBodyLogTextLengthLimit)
                             requestBodyText = requestBodyText.Substring(0, _options.RequestBodyLogTextLengthLimit);
-                        else
-                            try { requestBody = System.Text.Json.JsonDocument.Parse(requestBodyText); } catch (Exception) { }
                     }
                 }
                 else
@@ -196,7 +172,8 @@ namespace Serilog.AspNetCore
                 {
                     try
                     {
-                        var valuesByKey = context.Request.Headers.Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
+                        var valuesByKey = context.Request.Headers
+                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
                         foreach (var item in valuesByKey)
                         {
                             if (item.Count() > 1)
@@ -208,7 +185,7 @@ namespace Serilog.AspNetCore
                     catch (Exception headerParseException)
                     {
                         SelfLog.WriteLine("Cannot parse request header: " + headerParseException);
-                    }    
+                    }
                 }
 
                 var userAgentDic = new Dictionary<string, string>();
@@ -228,16 +205,16 @@ namespace Serilog.AspNetCore
                         userAgentDic.Add("DeviceModel", clientInfo.Device.Model);
                         userAgentDic.Add("DeviceManufacturer", clientInfo.Device.Brand);
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
-                        SelfLog.WriteLine("Cannot parse user agent:" + userAgent);
+                        SelfLog.WriteLine($"Cannot parse user agent:" + userAgent + $" --- {e}");
                     }
                 }
 
                 var requestQuery = new Dictionary<string, object>();
                 try
                 {
-                    var valuesByKey =context.Request.Query.GroupBy(x => x.Key);
+                    var valuesByKey = context.Request.Query.GroupBy(x => x.Key);
                     foreach (var item in valuesByKey)
                     {
                         if (item.Count() > 1)
@@ -246,14 +223,14 @@ namespace Serilog.AspNetCore
                             requestQuery.Add(item.Key, item.First().Value.ToString());
                     }
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    SelfLog.WriteLine("Cannot parse query string");
-                }    
+                    SelfLog.WriteLine($"Cannot parse query string: {e}");
+                }
 
                 var requestData = new
                 {
-                    ClientIp = context.Connection.RemoteIpAddress.ToString(),
+                    ClientIp = context.GetClientIp().ToString(),
                     Method = context.Request.Method,
                     Scheme = context.Request.Scheme,
                     Host = context.Request.Host.Value,
@@ -265,18 +242,26 @@ namespace Serilog.AspNetCore
                     Header = requestHeader,
                     UserAgent = userAgentDic,
                 };
-
+                
                 object responseBody = null;
                 if ((_options.ResponseBodyLogMode == LogMode.LogAll ||
                      (!isRequestOk && _options.ResponseBodyLogMode == LogMode.LogFailures)))
                 {
+                    responseBodyText = TryReadResponseBodyText(context);
                     if (!string.IsNullOrWhiteSpace(responseBodyText))
                     {
-                        try { responseBodyText = responseBodyText.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat); } catch (Exception) { }
+                        JToken jToken;
+                        if (responseBodyText.TryGetJToken(out jToken))
+                        {
+                            jToken = jToken.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat);
+                            responseBodyText = jToken.ToString();
+                            responseBody = jToken;
+                        }
+
                         if (responseBodyText.Length > _options.ResponseBodyLogTextLengthLimit)
+                        {
                             responseBodyText = responseBodyText.Substring(0, _options.ResponseBodyLogTextLengthLimit);
-                        else
-                            try { responseBody = System.Text.Json.JsonDocument.Parse(responseBodyText); } catch (Exception) { }
+                        }
                     }
                 }
                 else
@@ -288,10 +273,10 @@ namespace Serilog.AspNetCore
                 if (_options.ResponseHeaderLogMode == LogMode.LogAll ||
                     (!isRequestOk && _options.ResponseHeaderLogMode == LogMode.LogFailures))
                 {
-                    
                     try
                     {
-                        var valuesByKey = context.Response.Headers.Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
+                        var valuesByKey = context.Response.Headers
+                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
                         foreach (var item in valuesByKey)
                         {
                             if (item.Count() > 1)
@@ -303,7 +288,7 @@ namespace Serilog.AspNetCore
                     catch (Exception headerParseException)
                     {
                         SelfLog.WriteLine("Cannot parse response header: " + headerParseException);
-                    }    
+                    }
                 }
 
                 var responseData = new
@@ -315,10 +300,10 @@ namespace Serilog.AspNetCore
                     Body = responseBody,
                     Header = responseHeader,
                 };
-                
+
                 if (!collector.TryComplete(out var collectedProperties))
                     collectedProperties = NoProperties;
-                    
+
                 logger.Write(level, ex, _options.MessageTemplate, new
                 {
                     Request = requestData,
@@ -329,12 +314,55 @@ namespace Serilog.AspNetCore
 
             return false;
         }
-        
+
+        private static string TryReadRequestBodyText(HttpContext context)
+        {
+            string requestBodyText = null;
+            if (context.Request.ContentLength.HasValue && context.Request.ContentLength > 0)
+            {
+                context.Request.Body.Position = 0;
+
+                using (StreamReader reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, -1, true))
+                {
+                    requestBodyText = reader.ReadToEnd();
+                }
+
+                context.Request.Body.Position = 0;
+            }
+
+            return requestBodyText;
+        }
+
+        private static string TryReadResponseBodyText(HttpContext context)
+        {
+            var responseBodyText = string.Empty;
+            if (context.Response.Body != null && context.Response.Body.Length > 0)
+            {
+                try
+                {
+                    context.Response.Body.Position = 0;
+
+                    using (StreamReader reader =
+                           new StreamReader(context.Response.Body, Encoding.UTF8, true, -1, true))
+                    {
+                        responseBodyText = reader.ReadToEnd();
+                    }
+
+                    context.Response.Body.Position = 0;
+                }
+                catch (Exception responseParseException)
+                {
+                    SelfLog.WriteLine("Failed to extract response: " + responseParseException);
+                }
+            }
+
+            return responseBodyText;
+        }
+
         async Task RevertResponseBodyStreamAsync(Stream bodyStream, Stream orginalBodyStream)
         {
             bodyStream.Seek(0, SeekOrigin.Begin);
             await bodyStream.CopyToAsync(orginalBodyStream);
         }
-
     }
 }

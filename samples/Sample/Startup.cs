@@ -25,7 +25,8 @@ namespace Sample
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllersWithViews();
+            services.AddControllers();
+            services.AddOpenApiDocument();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -37,24 +38,26 @@ namespace Sample
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+
+            app.UseOpenApi();
+            app.UseSwaggerUi3();
             
             // Write streamlined request completion events, instead of the more verbose ones from the framework.
             // To use the default framework request logging instead, remove this line and set the "Microsoft"
             // level in appsettings.json to "Information".
             app.UseSerilogPlusRequestLogging(p =>
             {
-                p.RequestHeaderLogMode = LogMode.LogFailures;
-                p.RequestBodyLogMode = LogMode.LogFailures;
+                p.RequestHeaderLogMode = LogMode.LogAll;
+                p.RequestBodyLogMode = LogMode.LogAll;
                 p.RequestBodyLogTextLengthLimit = 5000;
-                p.ResponseHeaderLogMode = LogMode.LogNone;
-                p.ResponseBodyLogMode = LogMode.LogFailures;
+                p.ResponseHeaderLogMode = LogMode.LogAll;
+                p.ResponseBodyLogMode = LogMode.LogAll;
                 p.ResponseBodyLogTextLengthLimit = 5000;
                 p.MaskFormat = "*****"; 
                 p.MaskedProperties.Clear();
@@ -68,6 +71,7 @@ namespace Sample
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllers();
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");

@@ -20,11 +20,7 @@ namespace LogConfigurationFileSample
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .UseSerilogPlus(log =>
-                {
-                    log.MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Fatal)
-                       .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning);
-                })
+                .UseSerilogPlus()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder
