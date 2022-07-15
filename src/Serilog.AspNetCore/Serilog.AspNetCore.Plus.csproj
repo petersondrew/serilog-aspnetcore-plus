@@ -2,9 +2,9 @@
 
 	<PropertyGroup>
 		<Description>Serilog support for ASP.NET Core logging with some plus features</Description>
-		<VersionPrefix>6.0</VersionPrefix>
+		<VersionPrefix>5.0</VersionPrefix>
 		<Authors>Microsoft;Serilog Contributors;</Authors>
-		<TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0</TargetFrameworks>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<AssemblyOriginatorKeyFile>../../assets/Serilog.snk</AssemblyOriginatorKeyFile>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -19,7 +19,7 @@
 		<RepositoryType>git</RepositoryType>
 		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
 		<RootNamespace>Serilog</RootNamespace>
-		<PackageVersion>4.1.14</PackageVersion>
+		<PackageVersion>5.0</PackageVersion>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
@@ -34,7 +34,6 @@
 		<PackageReference Include="Serilog" Version="2.10.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
 		<PackageReference Include="Serilog.Formatting.Compact" Version="1.1.0" />
-		<PackageReference Include="System.Text.Json" Version="5.0.2" />
 		<PackageReference Include="Serilog.Enrichers.Environment" Version="2.2.0" />
 		<PackageReference Include="Serilog.Exceptions" Version="8.1.0" />
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="4.2.0" />
@@ -51,6 +50,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.8" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.8" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.2" />
+		<PackageReference Include="System.Text.Json" Version="5.0.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
@@ -59,6 +59,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.8" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.8" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.2" />
+		<PackageReference Include="System.Text.Json" Version="5.0.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
@@ -66,6 +67,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.8" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.8" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.2" />
+		<PackageReference Include="System.Text.Json" Version="5.0.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
@@ -73,12 +75,6 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
+		<PackageReference Include="System.Text.Json" Version="5.0.2" />
 	</ItemGroup>
 </Project>
