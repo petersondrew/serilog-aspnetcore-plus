@@ -299,7 +299,7 @@ namespace Serilog.AspNetCore
                     Headers = responseHeader
                 };
 
-                if (!collector.TryComplete(out var collectedProperties))
+                if (!collector.TryComplete(out var collectedProperties, out var collectedException))
                     collectedProperties = NoProperties;
 
                 var httpRequestContext = new HttpContextInfo { Request = requestData, Response = responseData, Diagnostics = collectedProperties.ToDictionary(x => x.Name, x => x.Value.ToString()) };
@@ -313,7 +313,7 @@ namespace Serilog.AspNetCore
                     }
                 }
 
-                contextLogger.Write(level, ex, messageOptions.MessageTemplate, messageOptions.MessageParameters);
+                contextLogger.Write(level, ex ?? collectedException, messageOptions.MessageTemplate, messageOptions.MessageParameters);
             }
 
             return false;
