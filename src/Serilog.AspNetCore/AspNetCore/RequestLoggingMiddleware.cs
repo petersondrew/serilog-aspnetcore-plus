@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
 using Serilog.Extensions;
+using Serilog.Models;
 
 namespace Serilog.AspNetCore
 {
@@ -146,7 +147,7 @@ namespace Serilog.AspNetCore
                      (!isRequestOk && _options.RequestBodyLogMode == LogMode.LogFailures)))
                 {
                     requestBodyText = TryReadRequestBodyText(context);
-                    if (!string.IsNullOrWhiteSpace(requestBodyText))
+                    if (_options.LogRequestBodyAsStructuredObject && !string.IsNullOrWhiteSpace(requestBodyText))
                     {
                         JToken token;
                         if (requestBodyText.TryGetJToken(out token))
@@ -173,14 +174,13 @@ namespace Serilog.AspNetCore
                     try
                     {
                         var valuesByKey = context.Request.Headers
-                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
+                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat);
                         foreach (var item in valuesByKey)
                         {
-                            if (item.Count() > 1)
-                                requestHeader.Add(item.Key, item.Select(x => x.Value.ToString()).ToArray());
+                            if (item.Value.Count() > 1)
+                                requestHeader.Add(item.Key, item.Value);
                             else
-                                requestHeader.Add(item.Key, item.First().Value.ToString());
-                        }
+                                requestHeader.Add(item.Key, item.Value.First());                        }
                     }
                     catch (Exception headerParseException)
                     {
@@ -228,10 +228,10 @@ namespace Serilog.AspNetCore
                     SelfLog.WriteLine($"Cannot parse query string: {e}");
                 }
 
-                var requestData = new
+                var requestData = new HttpRequestInfo
                 {
-                    ClientIp = context.GetClientIp().ToString(),
-                    Method = context.Request.Method,
+                    ClientIp = context.GetClientIp()?.ToString(), 
+                    Method = context.Request.Method, 
                     Scheme = context.Request.Scheme,
                     Host = context.Request.Host.Value,
                     Path = context.Request.Path.Value,
@@ -239,8 +239,8 @@ namespace Serilog.AspNetCore
                     Query = requestQuery,
                     BodyString = requestBodyText,
                     Body = requestBody,
-                    Header = requestHeader,
-                    UserAgent = userAgentDic,
+                    Headers = requestHeader,
+                    UserAgent = userAgentDic
                 };
                 
                 object responseBody = null;
@@ -251,7 +251,7 @@ namespace Serilog.AspNetCore
                     if (!string.IsNullOrWhiteSpace(responseBodyText))
                     {
                         JToken jToken;
-                        if (responseBodyText.TryGetJToken(out jToken))
+                        if (_options.LogResponseBodyAsStructuredObject && responseBodyText.TryGetJToken(out jToken))
                         {
                             jToken = jToken.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat);
                             responseBodyText = jToken.ToString();
@@ -276,13 +276,13 @@ namespace Serilog.AspNetCore
                     try
                     {
                         var valuesByKey = context.Response.Headers
-                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
+                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat);
                         foreach (var item in valuesByKey)
                         {
-                            if (item.Count() > 1)
-                                responseHeader.Add(item.Key, item.Select(x => x.Value.ToString()).ToArray());
+                            if (item.Value.Count() > 1)
+                                responseHeader.Add(item.Key, item.Value);
                             else
-                                responseHeader.Add(item.Key, item.First().Value.ToString());
+                                responseHeader.Add(item.Key, item.Value.First());
                         }
                     }
                     catch (Exception headerParseException)
@@ -291,25 +291,29 @@ namespace Serilog.AspNetCore
                     }
                 }
 
-                var responseData = new
+                var responseData = new HttpResponseInfo
                 {
-                    context.Response.StatusCode,
-                    IsSucceed = isRequestOk,
-                    ElapsedMilliseconds = elapsedMs,
+                    StatusCode = context.Response.StatusCode, IsSucceed = isRequestOk, ElapsedMilliseconds = elapsedMs,
                     BodyString = responseBodyText,
                     Body = responseBody,
-                    Header = responseHeader,
+                    Headers = responseHeader
                 };
 
                 if (!collector.TryComplete(out var collectedProperties))
                     collectedProperties = NoProperties;
 
-                logger.Write(level, ex, _options.MessageTemplate, new
+                var httpRequestContext = new HttpContextInfo { Request = requestData, Response = responseData, Diagnostics = collectedProperties.ToDictionary(x => x.Name, x => x.Value.ToString()) };
+                var messageOptions = _options.GetLogMessageAndProperties(httpRequestContext);
+                var contextLogger = logger;
+                if (messageOptions.AdditionalProperties != null)
                 {
-                    Request = requestData,
-                    Response = responseData,
-                    Diagnostics = collectedProperties.ToDictionary(x => x.Name, x => x.Value.ToString()),
-                });
+                    foreach (var p in messageOptions.AdditionalProperties)
+                    {
+                        contextLogger = contextLogger.ForContext(p.Key, p.Value, true);
+                    }
+                }
+
+                contextLogger.Write(level, ex, messageOptions.MessageTemplate, messageOptions.MessageParameters);
             }
 
             return false;

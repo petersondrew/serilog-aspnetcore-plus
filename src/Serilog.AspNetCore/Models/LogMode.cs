@@ -1,4 +1,4 @@
-﻿namespace Serilog.AspNetCore
+﻿namespace Serilog.Models
 {
     /// <summary>
     /// Determines when do logging
@@ -9,12 +9,14 @@
         /// Logs no data whether operation succeed or failed
         /// </summary>
         LogNone,
+        
         /// <summary>
-        /// Logs all including success and failures
+        /// Logs all http requests including success and failures
         /// </summary>
         LogAll,
+        
         /// <summary>
-        /// Log only failures
+        /// Log only failed http requests
         /// </summary>
         LogFailures
     }

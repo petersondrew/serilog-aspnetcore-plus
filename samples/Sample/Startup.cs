@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.AspNetCore;
+using Serilog.Models;
 
 namespace Sample
 {

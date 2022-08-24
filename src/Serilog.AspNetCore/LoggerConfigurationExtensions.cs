@@ -1,4 +1,5 @@
-﻿using Serilog.Enrichers;
+﻿using Serilog.DestructuringPolicies;
+using Serilog.Enrichers;
 using Serilog.Events;
 using Serilog.Exceptions;
 

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
+using Serilog.Formatting.Compact;
 using Serilog.Sinks.SystemConsole.Themes;
 
 namespace Sample
@@ -55,7 +56,9 @@ namespace Sample
                             outputTemplate:
                             "[{Timestamp:HH:mm:ss} {Level:u3}] {Message} {NewLine}{Properties} {NewLine}{Exception}{NewLine}",
                             theme: SystemConsoleTheme.Literate,
-                            restrictedToMinimumLevel: LogEventLevel.Information);
+                            restrictedToMinimumLevel: LogEventLevel.Information)
+                        .WriteTo.File(new CompactJsonFormatter(), "App_Data/Logs/log-.json", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3);
+
                 }))
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
     }

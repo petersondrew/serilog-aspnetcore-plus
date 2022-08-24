@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 using Serilog.Core;
 using Serilog.Events;
 
-namespace Serilog
+namespace Serilog.DestructuringPolicies
 {
     // taken from https://github.com/destructurama/json-net
     internal class JsonNetDestructuringPolicy : IDestructuringPolicy

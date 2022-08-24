@@ -1,11 +1,10 @@
-﻿using Serilog.Core;
-using Serilog.Events;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using System.Text.Json;
+using Serilog.Core;
+using Serilog.Events;
 
-namespace Serilog
+namespace Serilog.DestructuringPolicies
 {
     internal class JsonDocumentDestructuringPolicy : IDestructuringPolicy
     {

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.AspNetCore;
 using Serilog.Formatting.Compact;
+using Serilog.Models;
 
 namespace LogConfigurationFileSample
 {

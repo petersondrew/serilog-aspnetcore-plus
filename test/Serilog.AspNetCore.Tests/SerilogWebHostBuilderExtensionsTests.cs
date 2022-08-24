@@ -3,6 +3,8 @@
 
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +14,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Serilog.Filters;
 using Serilog.AspNetCore.Tests.Support;
+using Serilog.Events;
+using Serilog.Models;
 
 // Newer frameworks provide IHostBuilder
 #pragma warning disable CS0618
@@ -52,18 +56,46 @@ namespace Serilog.AspNetCore.Tests
                 };
             });
 
-            await web.CreateClient().GetAsync("/resource");
+            var httpClient = web.CreateClient();
+            await httpClient.SendAsync(new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri("https://example.com/resource?query=test"),
+                Headers =
+                {
+                    Referrer = new Uri("https://example.com/referrer"),
+                }
+            });
 
             Assert.NotEmpty(sink.Writes);
 
-            var completionEvent = sink.Writes.First(logEvent => Matching.FromSource<RequestLoggingMiddleware>()(logEvent));
+            var logEvent = sink.Writes.First(logEvent => Matching.FromSource<RequestLoggingMiddleware>()(logEvent));
+            Assert.Equal("HTTP Request {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms", logEvent.MessageTemplate.Text);
+            Assert.Equal(LogEventLevel.Information, logEvent.Level);
+            Assert.Null(logEvent.Exception);
+            var request = ((StructureValue)((StructureValue)logEvent.Properties["Context"]).Properties.First(x => x.Name == nameof(HttpContextInfo.Request)).Value).Properties.ToDictionary(x => x.Name);
+            var response = ((StructureValue)((StructureValue)logEvent.Properties["Context"]).Properties.First(x => x.Name == nameof(HttpContextInfo.Response)).Value).Properties.ToDictionary(x => x.Name);
+            var diagnostics = ((DictionaryValue)((StructureValue)logEvent.Properties["Context"]).Properties.First(x => x.Name == nameof(HttpContextInfo.Diagnostics)).Value).Elements.ToDictionary(x => x.Key.Value.ToString());
 
-            Assert.Equal(42, completionEvent.Properties["SomeInteger"].LiteralValue());
-            Assert.Equal("string", completionEvent.Properties["SomeString"].LiteralValue());
-            Assert.Equal("/resource", completionEvent.Properties["RequestPath"].LiteralValue());
-            Assert.Equal(200, completionEvent.Properties["StatusCode"].LiteralValue());
-            Assert.Equal("GET", completionEvent.Properties["RequestMethod"].LiteralValue());
-            Assert.True(completionEvent.Properties.ContainsKey("Elapsed"));
+            Assert.Equal("GET", request[nameof(HttpRequestInfo.Method)].Value.LiteralValue());
+            Assert.Equal("https", request[nameof(HttpRequestInfo.Scheme)].Value.LiteralValue());
+            Assert.Equal("example.com", request[nameof(HttpRequestInfo.Host)].Value.LiteralValue());
+            Assert.Equal("/resource", request[nameof(HttpRequestInfo.Path)].Value.LiteralValue());
+            Assert.Equal("?query=test", request[nameof(HttpRequestInfo.QueryString)].Value.LiteralValue());
+            Assert.Equal("Referer", request[nameof(HttpRequestInfo.Headers)].Value.DictionaryValue().First().Key.LiteralValue());
+            Assert.Equal("https://example.com/referrer", request[nameof(HttpRequestInfo.Headers)].Value.DictionaryValue().First().Value.LiteralValue());
+
+            Assert.Equal(200, response[nameof(HttpResponseInfo.StatusCode)].Value.LiteralValue());
+            Assert.True((bool)response[nameof(HttpResponseInfo.IsSucceed)].Value.LiteralValue());
+            Assert.IsType<double>(response[nameof(HttpResponseInfo.ElapsedMilliseconds)].Value.LiteralValue());
+
+            // Assert.Equal("string", diagnostics["SomeString"].Value.ToString());
+            // Assert.Equal("42", diagnostics["SomeInteger"].Value.ToString());
+            
+            Assert.Equal("/resource", logEvent.Properties["RequestPath"].LiteralValue());
+            Assert.Equal(200, logEvent.Properties["StatusCode"].LiteralValue());
+            Assert.Equal("GET", logEvent.Properties["RequestMethod"].LiteralValue());
+            Assert.True(logEvent.Properties.ContainsKey("ElapsedMilliseconds"));
         }
 
         [Fact]

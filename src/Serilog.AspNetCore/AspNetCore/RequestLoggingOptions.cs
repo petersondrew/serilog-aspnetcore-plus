@@ -16,8 +16,7 @@ using Microsoft.AspNetCore.Http;
 using Serilog.Events;
 using System;
 using System.Collections.Generic;
-
-// ReSharper disable UnusedAutoPropertyAccessor.Global
+using Serilog.Models;
 
 namespace Serilog.AspNetCore
 {
@@ -26,38 +25,12 @@ namespace Serilog.AspNetCore
     /// </summary>
     public class RequestLoggingOptions
     {
-        const string DefaultRequestCompletionMessageTemplate =
-            "HTTP Request Completed {@Context}";
-
-        static LogEventLevel DefaultGetLevel(HttpContext ctx, double _, Exception ex)
-        {
-            var level = LogEventLevel.Information;
-            if (ctx.Response.StatusCode >= 500)
-            {
-                level = LogEventLevel.Error;
-            }
-            else if (ctx.Response.StatusCode >= 400)
-            {
-                level = LogEventLevel.Warning;
-            }
-            else if (ex != null)
-            {
-                level = LogEventLevel.Error;
-            }
-
-            return level;
-        }
-
         /// <summary>
-        /// Gets or sets the message template. The default value is
-        /// <c>"HTTP Request Completed {@Context}"</c>. The
-        /// template can contain any of the placeholders from the default template, names of properties
-        /// added by ASP.NET Core, and names of properties added to the <see cref="IDiagnosticContext"/>.
+        /// A function returning the <see cref="LogEntryParameters"/> based on the <see cref="HttpContextInfo"/> information,
+        /// default behavior is logging message with template "HTTP request {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms"
+        /// and attaching HTTP contextual data <see cref="HttpContextInfo"/> as property named "Context"
         /// </summary>
-        /// <value>
-        /// The message template.
-        /// </value>
-        public string MessageTemplate { get; set; }
+        public Func<HttpContextInfo, LogEntryParameters> GetLogMessageAndProperties { get; set; }
 
         /// <summary>
         /// A callback that can be used to set additional properties on the request completion event.
@@ -95,6 +68,11 @@ namespace Serilog.AspNetCore
         /// Determines when logging request body data
         /// </summary>
         public LogMode RequestBodyLogMode { get; set; } = LogMode.LogAll;
+        
+        /// <summary>
+        /// Determines weather to log request as structured object instead of string. This is useful when you use Elastic, Splunk or any other platform to search on object properties. Default is true. Masking only works when this options is enabled.
+        /// </summary>
+        public bool LogRequestBodyAsStructuredObject { get; set; } = true;
 
         /// <summary>
         /// Determines when logging response headers
@@ -107,24 +85,29 @@ namespace Serilog.AspNetCore
         public LogMode ResponseBodyLogMode { get; set; } = LogMode.LogFailures;
 
         /// <summary>
+        /// Determines whether to log response as structured object instead of string. This is useful when you use Elastic, Splunk or any other platform to search on object properties. Default is true. Masking only works when this options is enabled.
+        /// </summary>
+        public bool LogResponseBodyAsStructuredObject { get; set; } = true;
+        
+        /// <summary>
         /// Properties to mask before logging to output to prevent sensitive data leakage
         /// </summary>
         public IList<string> MaskedProperties { get; } =
             new List<string>()
-                {"*password*", "*token*", "*clientsecret*", "*bearer*", "*authorization*", "*client-secret*", "*otp"};
+                {"*password*", "*token*", "*clientsecret*", "*bearer*", "*secret*", "*authorization*", "*client-secret*", "*otp"};
 
         /// <summary>
-        /// Mask format to replace with masked data
+        /// Mask format to replace for masked properties
         /// </summary>
         public string MaskFormat { get; set; } = "*** MASKED ***";
 
         /// <summary>
-        /// Maximum allowed length of response body text to capture in logs
+        /// Maximum allowed length of response body text to capture in logs. response bodies that exceeds this limit will be trimmed.
         /// </summary>
         public int ResponseBodyLogTextLengthLimit { get; set; } = 4000;
 
         /// <summary>
-        /// Maximum allowed length of request body text to capture in logs
+        /// Maximum allowed length of request body text to capture in logs. request bodies that exceeds this limit will be trimmed.
         /// </summary>
         public int RequestBodyLogTextLengthLimit { get; set; } = 4000;
 
@@ -140,7 +123,36 @@ namespace Serilog.AspNetCore
         public RequestLoggingOptions()
         {
             GetLevel = DefaultGetLevel;
-            MessageTemplate = DefaultRequestCompletionMessageTemplate;
+            GetLogMessageAndProperties = DefaultLogMessageAndProperties;
+        }
+        
+        private static LogEventLevel DefaultGetLevel(HttpContext ctx, double _, Exception ex)
+        {
+            var level = LogEventLevel.Information;
+            if (ctx.Response.StatusCode >= 500)
+            {
+                level = LogEventLevel.Error;
+            }
+            else if (ctx.Response.StatusCode >= 400)
+            {
+                level = LogEventLevel.Warning;
+            }
+            else if (ex != null)
+            {
+                level = LogEventLevel.Error;
+            }
+
+            return level;
+        }
+        
+        private static LogEntryParameters DefaultLogMessageAndProperties(HttpContextInfo h)
+        {
+            return new LogEntryParameters()
+            {
+                MessageTemplate = "HTTP Request {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
+                MessageParameters = new object[]{ h.Request.Method, h.Request.Path, h.Response.StatusCode, h.Response.ElapsedMilliseconds},
+                AdditionalProperties = { ["Context"] = h }
+            };
         }
     }
 }
